@@ -1,0 +1,2226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Yuhuatai 1937: 80v80 Theatre-Scale Tactical Simulation</title>
+  <style>
+    :root {
+      --bg-dark: #1c2017;
+      --panel-bg: rgba(20, 24, 18, 0.92);
+      --border-brass: #8a7f5d;
+      --text-cream: #eee8d5;
+      --def-blue: #4da6ff;
+      --atk-red: #ff5c4d;
+      --amber: #f5b041;
+      --hmg-orange: #ff8c1a;
+      --at-purple: #d7bde2;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-dark);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--text-cream);
+      touch-action: none;
+    }
+
+    #viewportCanvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: grab;
+    }
+
+    #viewportCanvas:active {
+      cursor: grabbing;
+    }
+
+    /* Top Theatre HUD */
+    #topHud {
+      position: fixed;
+      top: 10px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .hud-card {
+      background: var(--panel-bg);
+      border: 1.5px solid var(--border-brass);
+      border-radius: 8px;
+      padding: 6px 12px;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      pointer-events: auto;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+    }
+
+    .score-strip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+
+    .pill {
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .pill-def { background: rgba(77, 166, 255, 0.22); border: 1px solid var(--def-blue); color: #a8d5ff; }
+    .pill-atk { background: rgba(255, 92, 77, 0.22); border: 1px solid var(--atk-red); color: #ffb3ad; }
+    .pill-tank { background: rgba(245, 176, 65, 0.22); border: 1px solid var(--amber); color: #ffe0a3; }
+
+    #perfReadout {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      color: #b8b096;
+    }
+
+    /* Left Tactical Minimap & Camera Controls */
+    #minimapWrap {
+      position: fixed;
+      top: 58px;
+      left: 12px;
+      background: var(--panel-bg);
+      border: 1.5px solid var(--border-brass);
+      border-radius: 8px;
+      padding: 6px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.65);
+    }
+
+    #minimapCanvas {
+      width: 128px;
+      height: 192px;
+      border: 1px solid #59533e;
+      border-radius: 4px;
+      cursor: pointer;
+      display: block;
+    }
+
+    .cam-controls {
+      display: flex;
+      gap: 4px;
+      width: 100%;
+    }
+
+    .cam-btn {
+      flex: 1;
+      background: #2e3428;
+      color: var(--text-cream);
+      border: 1px solid #636b54;
+      border-radius: 4px;
+      padding: 4px 0;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .cam-btn:active {
+      background: #434d3a;
+    }
+
+    /* Right Telemetry & Role Legend */
+    #rightTelemetry {
+      position: fixed;
+      top: 58px;
+      right: 12px;
+      background: var(--panel-bg);
+      border: 1px solid var(--border-brass);
+      border-radius: 8px;
+      padding: 8px 11px;
+      font-size: 11px;
+      line-height: 1.45;
+      max-width: 245px;
+      z-index: 9;
+      pointer-events: none;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    /* Bottom iPad Touch Command Deck (8 Squads + Orders) */
+    #commandDeck {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--panel-bg);
+      border: 2px solid var(--border-brass);
+      border-radius: 12px;
+      padding: 7px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      z-index: 10;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.75);
+      max-width: 98vw;
+    }
+
+    .deck-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .sq-btn {
+      appearance: none;
+      background: #2b3226;
+      color: var(--text-cream);
+      border: 1.5px solid #58604b;
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 72px;
+      transition: transform 0.06s ease, background 0.12s ease;
+    }
+
+    .sq-btn:active {
+      transform: scale(0.95);
+    }
+
+    .sq-btn span.sub {
+      font-size: 9px;
+      font-weight: 500;
+      color: #b2ab92;
+      margin-top: 1px;
+    }
+
+    .sq-btn.active-sq {
+      border-color: var(--def-blue);
+      background: rgba(77, 166, 255, 0.25);
+      box-shadow: 0 0 8px rgba(77, 166, 255, 0.4);
+    }
+
+    .sq-btn.active-all {
+      border-color: #ffd700;
+      background: rgba(255, 215, 0, 0.22);
+      color: #fff3b0;
+    }
+
+    .sq-btn.active-ord {
+      border-color: var(--amber);
+      background: rgba(245, 176, 65, 0.28);
+      color: #ffe7ba;
+    }
+
+    .sq-btn.util-btn {
+      background: #3d3526;
+      border-color: #917948;
+    }
+
+    .sep {
+      width: 1.5px;
+      height: 24px;
+      background: var(--border-brass);
+      opacity: 0.5;
+      margin: 0 2px;
+    }
+
+    @media (max-width: 900px) {
+      #rightTelemetry { display: none; }
+      .sq-btn { min-width: 60px; padding: 4px 6px; font-size: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Strategic Telemetry Bar -->
+  <div id="topHud">
+    <div class="hud-card score-strip">
+      <span class="pill pill-def" id="uiDefCount">GARRISON: 80 / 80</span>
+      <span class="pill pill-tank" id="uiTankCount">ARMOR: 3 TANKS</span>
+      <span class="pill pill-atk" id="uiAtkCount">ASSAULT: 80 / 80</span>
+    </div>
+    <div class="hud-card" id="uiSectorText" style="font-size:11.5px; font-weight:700; color:var(--amber);">
+      HILLTOP: GARRISON | GATE: GARRISON | STREETS: CONTESTED
+    </div>
+    <div class="hud-card" id="perfReadout">60 FPS | 160 AI</div>
+  </div>
+
+  <!-- Left Minimap & Camera Controls -->
+  <div id="minimapWrap">
+    <div style="font-size:10px; font-weight:700; color:var(--amber);">THEATRE MINIMAP (TAP)</div>
+    <canvas id="minimapCanvas" width="128" height="192"></canvas>
+    <div class="cam-controls">
+      <button class="cam-btn" onclick="adjustZoom(1.22)" title="Zoom In">＋ ZOOM</button>
+      <button class="cam-btn" onclick="adjustZoom(0.82)" title="Zoom Out">－ ZOOM</button>
+      <button class="cam-btn" onclick="focusSelectedSquad()" title="Center on Squad">🎯 LOCATE</button>
+    </div>
+  </div>
+
+  <!-- Right Squad Telemetry & Role Legend -->
+  <div id="rightTelemetry">
+    <div style="font-weight:700; color:var(--amber); margin-bottom:2px;">SELECTED SQUAD TELEMETRY</div>
+    <div id="uiSquadDetails">Tap a squad button or double-tap map.</div>
+    <hr style="border:0; border-top:1px solid #4c5240; margin:5px 0;" />
+    <div style="font-weight:700; font-size:10px; color:#b8b096;">ROLES & BALLISTICS</div>
+    <div class="legend-item"><b style="color:#ffd700;">★ SL</b>: Squad Leader + Rally</div>
+    <div class="legend-item"><b style="color:#ff8c1a;">╦ HMG</b>: Tripod Heavy MG (680m)</div>
+    <div class="legend-item"><b style="color:#ffcc66;">▲ LMG</b>: Squad Light MG</div>
+    <div class="legend-item"><b style="color:#d7bde2;">◆ AT</b>: Anti-Tank Rocket</div>
+    <div class="legend-item"><b style="color:#58d68d;">✚ MED</b>: Battlefield Medic</div>
+    <div style="margin-top:5px; font-size:10px; color:#b5ad94;">
+      🧱 <b>Wall Physics:</b> Bullets & shells are physically blocked by buildings, gate walls, and bunkers.<br/>
+      🖐️ <b>Controls:</b> Drag to Pan, Pinch/Wheel to Zoom, <b>Quick-Tap Ground</b> to move selected squad.
+    </div>
+  </div>
+
+  <!-- Bottom 80-vs-80 Touch Command Deck -->
+  <div id="commandDeck">
+    <!-- Row 1: 8 Player Squads + ALL Team Toggle -->
+    <div class="deck-row">
+      <button class="sq-btn active-sq" id="btnSq0" onclick="selectSquad(0, true)">
+        1st HILL
+        <span class="sub" id="subSq0">10/10 | 100%</span>
+      </button>
+      <button class="sq-btn" id="btnSq1" onclick="selectSquad(1, true)">
+        2nd HILL
+        <span class="sub" id="subSq1">10/10 | 100%</span>
+      </button>
+      <button class="sq-btn" id="btnSq2" onclick="selectSquad(2, true)">
+        3rd HMG ╦
+        <span class="sub" id="subSq2">10/10 | 100%</span>
+      </button>
+      <button class="sq-btn" id="btnSq3" onclick="selectSquad(3, true)">
+        4th HMG ╦
+        <span class="sub" id="subSq3">10/10 | 100%</span>
+      </button>
+      <button class="sq-btn" id="btnSq4" onclick="selectSquad(4, true)">
+        5th GATE
+        <span class="sub" id="subSq4">10/10 | 100%</span>
+      </button>
+      <button class="sq-btn" id="btnSq5" onclick="selectSquad(5, true)">
+        6th WEST
+        <span class="sub" id="subSq5">10/10 | 100%</span>
+      </button>
+      <button class="sq-btn" id="btnSq6" onclick="selectSquad(6, true)">
+        7th EAST
+        <span class="sub" id="subSq6">10/10 | 100%</span>
+      </button>
+      <button class="sq-btn" id="btnSq7" onclick="selectSquad(7, true)">
+        8th VANGUARD
+        <span class="sub" id="subSq7">10/10 | 100%</span>
+      </button>
+      <div class="sep"></div>
+      <button class="sq-btn" id="btnSqAll" onclick="selectSquad(-1, false)">
+        📣 ALL 80
+        <span class="sub">ARMY ORDER</span>
+      </button>
+    </div>
+
+    <!-- Row 2: Tactical Orders & Theatre Actions -->
+    <div class="deck-row">
+      <button class="sq-btn" id="btnOrdAdvance" onclick="issueOrder('ADVANCE')">
+        ⚔️ ADVANCE
+        <span class="sub">Assault Waypoint</span>
+      </button>
+      <button class="sq-btn active-ord" id="btnOrdHold" onclick="issueOrder('HOLD')">
+        🛡️ HOLD & DEPLOY ╦
+        <span class="sub">Snap Trench / Tripod</span>
+      </button>
+      <button class="sq-btn" id="btnOrdFallback" onclick="issueOrder('FALLBACK')">
+        ⏪ FALL BACK
+        <span class="sub">Smoke + Withdraw</span>
+      </button>
+      <div class="sep"></div>
+      <button class="sq-btn util-btn" onclick="triggerSmokeOrder()">
+        💨 POP SMOKE
+        <span class="sub">Blind Enemy LOS</span>
+      </button>
+      <button class="sq-btn util-btn" onclick="spawnExtraTank()">
+        🚜 +HEAVY TANK
+        <span class="sub">Spawn South Road</span>
+      </button>
+      <button class="sq-btn util-btn" onclick="resetBattle()">
+        🔄 RESET 80v80
+        <span class="sub">Full Redeploy</span>
+      </button>
+    </div>
+  </div>
+
+  <canvas id="viewportCanvas"></canvas>
+
+  <script>
+    "use strict";
+
+    /*************************************************************************
+     * 1. WORLD DIMENSIONS, CAMERA VIEWPORT & CONSTANTS
+     *************************************************************************/
+    const WORLD_W = 2400;
+    const WORLD_H = 3600;
+
+    const TEAM_DEF = 0; // Player 80 Garrison Soldiers (North Hills, Gate & Urban Defense)
+    const TEAM_ATK = 1; // Enemy 80 Assault Soldiers + Crawling Armor (Southern Deployment)
+
+    const ROLE_SL    = "SL";
+    const ROLE_HMG   = "HMG";   // Stationary Tripod Heavy Machine Gunner (Extreme range/suppression)
+    const ROLE_MG    = "MG";    // Squad Light Machine Gunner
+    const ROLE_AT    = "AT";    // Anti-Tank Rocket Specialist
+    const ROLE_MEDIC = "MED";   // Squad Medic
+    const ROLE_RIFLE = "RIFLE"; // Rifleman
+
+    const STATE_ALIVE  = 0;
+    const STATE_DOWNED = 1;
+    const STATE_DEAD   = 2;
+
+    const canvas = document.getElementById("viewportCanvas");
+    const ctx = canvas.getContext("2d", { alpha: false });
+
+    const miniCanvas = document.getElementById("minimapCanvas");
+    const mCtx = miniCanvas.getContext("2d", { alpha: false });
+
+    // Pre-rendered static 2400x3600 battlefield canvas
+    const worldCanvas = document.createElement("canvas");
+    worldCanvas.width = WORLD_W;
+    worldCanvas.height = WORLD_H;
+    const wCtx = worldCanvas.getContext("2d", { alpha: false });
+
+    let screenW = window.innerWidth;
+    let screenH = window.innerHeight;
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    // 2D Camera State (Centers in world coordinates)
+    const camera = {
+      x: WORLD_W * 0.5,
+      y: WORLD_H * 0.52,
+      zoom: 0.58,
+      minZoom: 0.32,
+      maxZoom: 1.45
+    };
+
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    const rand = (min, max) => min + Math.random() * (max - min);
+    const distSq = (x1, y1, x2, y2) => (x2 - x1) ** 2 + (y2 - y1) ** 2;
+    const dist = (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1);
+
+    function normalizeAngle(a) {
+      while (a > Math.PI) a -= Math.PI * 2;
+      while (a < -Math.PI) a += Math.PI * 2;
+      return a;
+    }
+
+    function screenToWorld(sx, sy) {
+      return {
+        x: (sx - screenW * 0.5) / camera.zoom + camera.x,
+        y: (sy - screenH * 0.5) / camera.zoom + camera.y
+      };
+    }
+
+    function clampCamera() {
+      const halfVisW = (screenW * 0.5) / camera.zoom;
+      const halfVisH = (screenH * 0.5) / camera.zoom;
+      camera.x = clamp(camera.x, Math.min(halfVisW, WORLD_W * 0.5), Math.max(WORLD_W - halfVisW, WORLD_W * 0.5));
+      camera.y = clamp(camera.y, Math.min(halfVisH, WORLD_H * 0.5), Math.max(WORLD_H - halfVisH, WORLD_H * 0.5));
+    }
+
+    function resizeViewport() {
+      screenW = window.innerWidth;
+      screenH = window.innerHeight;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = screenW * dpr;
+      canvas.height = screenH * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      clampCamera();
+    }
+    window.addEventListener("resize", resizeViewport);
+    resizeViewport();
+
+    /*************************************************************************
+     * 2. GEOMETRY & STRICT ENVIRONMENTAL BALLISTICS (WALL COLLISIONS)
+     *************************************************************************/
+    let solidObstacles = []; // Array of { x, y, w, h, type } that block bullets & movement
+    let coverClusters = [];
+    let coverNodes = [];
+    let sectors = [];
+
+    function pointToSegmentDistSq(px, py, x1, y1, x2, y2) {
+      const l2 = distSq(x1, y1, x2, y2);
+      if (l2 === 0) return distSq(px, py, x1, y1);
+      const t = clamp(((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2, 0, 1);
+      return distSq(px, py, x1 + t * (x2 - x1), y1 + t * (y2 - y1));
+    }
+
+    // Liang-Barsky fast segment-vs-AABB intersection (Returns hit parameter t in [0,1] or null)
+    function segmentIntersectsRect(x1, y1, x2, y2, rx, ry, rw, rh) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      let t0 = 0.0;
+      let t1 = 1.0;
+
+      const p = [-dx, dx, -dy, dy];
+      const q = [x1 - rx, rx + rw - x1, y1 - ry, ry + rh - y1];
+
+      for (let i = 0; i < 4; i++) {
+        if (p[i] === 0) {
+          if (q[i] < 0) return null;
+        } else {
+          const t = q[i] / p[i];
+          if (p[i] < 0) {
+            if (t > t1) return null;
+            if (t > t0) t0 = t;
+          } else {
+            if (t < t0) return null;
+            if (t < t1) t1 = t;
+          }
+        }
+      }
+      return t0 <= t1 ? t0 : null;
+    }
+
+    // Check if a bullet step (x1,y1)->(x2,y2) hits any solid building, gate wall, or bunker
+    function traceBulletAgainstWalls(x1, y1, x2, y2) {
+      let closestT = Infinity;
+      let hitX = x2, hitY = y2;
+      const minX = Math.min(x1, x2), maxX = Math.max(x1, x2);
+      const minY = Math.min(y1, y2), maxY = Math.max(y1, y2);
+
+      for (let i = 0; i < solidObstacles.length; i++) {
+        const ob = solidObstacles[i];
+        // Fast AABB reject
+        if (maxX < ob.x || minX > ob.x + ob.w || maxY < ob.y || minY > ob.y + ob.h) continue;
+
+        const t = segmentIntersectsRect(x1, y1, x2, y2, ob.x, ob.y, ob.w, ob.h);
+        if (t !== null && t < closestT) {
+          closestT = t;
+          hitX = x1 + (x2 - x1) * t;
+          hitY = y1 + (y2 - y1) * t;
+        }
+      }
+      return closestT <= 1.0 ? { x: hitX, y: hitY } : null;
+    }
+
+    // Check if Line-of-Sight between two units is blocked by any solid wall or smoke
+    function hasClearLineOfSight(x1, y1, x2, y2) {
+      if (isBlockedBySmoke(x1, y1, x2, y2)) return false;
+      const minX = Math.min(x1, x2), maxX = Math.max(x1, x2);
+      const minY = Math.min(y1, y2), maxY = Math.max(y1, y2);
+
+      for (let i = 0; i < solidObstacles.length; i++) {
+        const ob = solidObstacles[i];
+        if (maxX < ob.x || minX > ob.x + ob.w || maxY < ob.y || minY > ob.y + ob.h) continue;
+        if (segmentIntersectsRect(x1, y1, x2, y2, ob.x, ob.y, ob.w, ob.h) !== null) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    /*************************************************************************
+     * 3. BUILD DETAILED 2400x3600 THEATRE MAP (HILLS, GATE, URBAN STREETS)
+     *************************************************************************/
+    function buildTheatreMap() {
+      solidObstacles = [];
+      coverClusters = [];
+      coverNodes = [];
+
+      sectors = [
+        { name: "YUHUATAI CITADEL", x: 1200, y: 460,  r: 140, owner: TEAM_DEF, cap: 100 },
+        { name: "ZHONGHUA GATE",    x: 1200, y: 1520, r: 130, owner: TEAM_DEF, cap: 100 },
+        { name: "CENTRAL CROSSING", x: 1200, y: 2350, r: 140, owner: -1,       cap: 0 }
+      ];
+
+      // Base Earth Background
+      wCtx.fillStyle = "#292f21";
+      wCtx.fillRect(0, 0, WORLD_W, WORLD_H);
+
+      // Subtle 100px tactical grid lines
+      wCtx.strokeStyle = "rgba(255, 255, 255, 0.03)";
+      wCtx.lineWidth = 1;
+      wCtx.beginPath();
+      for (let x = 0; x <= WORLD_W; x += 100) {
+        wCtx.moveTo(x, 0); wCtx.lineTo(x, WORLD_H);
+      }
+      for (let y = 0; y <= WORLD_H; y += 100) {
+        wCtx.moveTo(0, y); wCtx.lineTo(WORLD_W, y);
+      }
+      wCtx.stroke();
+
+      // =====================================================================
+      // ZONE 1: NORTHERN YUHUATAI HILLS (Y: 0 .. 1250)
+      // =====================================================================
+      const hillContours = [
+        { cx: 1200, cy: 480, rx: 1060, ry: 640, fill: "#313826" },
+        { cx: 1200, cy: 460, rx: 860,  ry: 500, fill: "#38412c" },
+        { cx: 1200, cy: 440, rx: 640,  ry: 370, fill: "#404a32" },
+        { cx: 1200, cy: 420, rx: 410,  ry: 240, fill: "#495439" }
+      ];
+      hillContours.forEach(c => {
+        wCtx.beginPath();
+        wCtx.ellipse(c.cx, c.cy, c.rx, c.ry, 0, 0, Math.PI * 2);
+        wCtx.fillStyle = c.fill;
+        wCtx.fill();
+        wCtx.strokeStyle = "rgba(210, 200, 155, 0.16)";
+        wCtx.lineWidth = 2;
+        wCtx.stroke();
+      });
+
+      // Winding Layered Trench Networks on Yuhuatai Slopes
+      const trenchYLevels = [620, 820, 1020];
+      trenchYLevels.forEach((ty, idx) => {
+        wCtx.strokeStyle = "#1c1913";
+        wCtx.lineWidth = 14;
+        wCtx.beginPath();
+        for (let x = 280; x <= 2120; x += 80) {
+          const offsetY = Math.sin(x * 0.012 + idx) * 22;
+          if (x === 280) wCtx.moveTo(x, ty + offsetY);
+          else wCtx.lineTo(x, ty + offsetY);
+        }
+        wCtx.stroke();
+
+        // Sandbag parapet lip along southern edge of trench
+        wCtx.strokeStyle = "#6e6246";
+        wCtx.lineWidth = 4;
+        wCtx.stroke();
+      });
+
+      // Concrete Hilltop Pillboxes & Bunker Revetments (Solid walls behind cover nodes)
+      const bunkerRects = [
+        { x: 660,  y: 380, w: 90, h: 42 },
+        { x: 1155, y: 330, w: 90, h: 42 },
+        { x: 1650, y: 380, w: 90, h: 42 },
+        { x: 460,  y: 720, w: 85, h: 36 },
+        { x: 880,  y: 740, w: 85, h: 36 },
+        { x: 1435, y: 740, w: 85, h: 36 },
+        { x: 1855, y: 720, w: 85, h: 36 }
+      ];
+      bunkerRects.forEach(b => {
+        solidObstacles.push({ ...b, type: "bunker" });
+        wCtx.fillStyle = "#5a5d54";
+        wCtx.fillRect(b.x, b.y, b.w, b.h);
+        wCtx.strokeStyle = "#252622";
+        wCtx.lineWidth = 3;
+        wCtx.strokeRect(b.x, b.y, b.w, b.h);
+      });
+
+      // =====================================================================
+      // ZONE 2: PAVED ROAD CORRIDORS & CENTRAL FORTIFIED ZHONGHUA GATE (Y: 1250 .. 1700)
+      // =====================================================================
+      // Main North-South Boulevard (X: 1030 .. 1370)
+      wCtx.fillStyle = "#3a3935";
+      wCtx.fillRect(1030, 480, 340, 3120);
+
+      // West & East Flanking Avenues
+      wCtx.fillRect(420, 1600, 140, 1950);
+      wCtx.fillRect(1840, 1600, 140, 1950);
+
+      // Cross Streets in the City Grid
+      const crossStreetsY = [1720, 2120, 2520, 2920];
+      crossStreetsY.forEach(cy => {
+        wCtx.fillRect(180, cy, 2040, 110);
+      });
+
+      // Boulevard Centerline Markings
+      wCtx.strokeStyle = "rgba(220, 210, 175, 0.2)";
+      wCtx.lineWidth = 3;
+      wCtx.setLineDash([18, 18]);
+      wCtx.beginPath();
+      wCtx.moveTo(1200, 520);
+      wCtx.lineTo(1200, 3550);
+      wCtx.stroke();
+      wCtx.setLineDash([]);
+
+      // Fortified Zhonghua City Gate Walls (Massive Brick Barrier at Y: 1460)
+      // Features Central Main Archway (1050..1350) and two narrow Infantry Side Sally-Ports (440..540, 1860..1960)
+      const gateWalls = [
+        { x: 0,    y: 1450, w: 440,  h: 95, type: "gate_wall" },
+        { x: 540,  y: 1450, w: 510,  h: 95, type: "gate_wall" },
+        { x: 1350, y: 1450, w: 510,  h: 95, type: "gate_wall" },
+        { x: 1960, y: 1450, w: 440,  h: 95, type: "gate_wall" }
+      ];
+      gateWalls.forEach(gw => {
+        solidObstacles.push(gw);
+        wCtx.fillStyle = "#5c493e";
+        wCtx.fillRect(gw.x, gw.y, gw.w, gw.h);
+        wCtx.strokeStyle = "#261d18";
+        wCtx.lineWidth = 4;
+        wCtx.strokeRect(gw.x, gw.y, gw.w, gw.h);
+
+        // Crenellations / Battlement details
+        wCtx.fillStyle = "#47382f";
+        for (let bx = gw.x + 12; bx < gw.x + gw.w - 24; bx += 36) {
+          wCtx.fillRect(bx, gw.y + 6, 20, 14);
+          wCtx.fillRect(bx, gw.y + gw.h - 20, 20, 14);
+        }
+      });
+
+      // =====================================================================
+      // ZONE 3: DENSE URBAN CITY STREETS & ALLEYWAYS (Y: 1700 .. 3100)
+      // =====================================================================
+      const cityRowsY = [
+        { y: 1850, h: 240 },
+        { y: 2250, h: 240 },
+        { y: 2650, h: 240 }
+      ];
+      const cityColsX = [
+        { x: 200,  w: 190 },
+        { x: 590,  w: 190 },
+        { x: 810,  w: 190 },
+        { x: 1400, w: 190 },
+        { x: 1620, w: 190 },
+        { x: 2010, w: 190 }
+      ];
+
+      cityRowsY.forEach((row, rIdx) => {
+        cityColsX.forEach((col, cIdx) => {
+          // Split large blocks into two sub-buildings with a narrow tactical alleyway between them
+          const b1 = { x: col.x, y: row.y, w: col.w, h: 105, type: "building" };
+          const b2 = { x: col.x, y: row.y + 135, w: col.w, h: 105, type: "building" };
+          [b1, b2].forEach(b => {
+            solidObstacles.push(b);
+            wCtx.fillStyle = (rIdx + cIdx) % 2 === 0 ? "#4a433c" : "#524840";
+            wCtx.fillRect(b.x, b.y, b.w, b.h);
+            wCtx.strokeStyle = "#211d1a";
+            wCtx.lineWidth = 3;
+            wCtx.strokeRect(b.x, b.y, b.w, b.h);
+            // Roof inner trim
+            wCtx.fillStyle = "#5e5349";
+            wCtx.fillRect(b.x + 8, b.y + 8, b.w - 16, b.h - 16);
+          });
+        });
+      });
+
+      // =====================================================================
+      // BAKED COVER CLUSTERS ACROSS ALL TIERS (PILLBOXES, TRENCHES, GATE, STREETS)
+      // =====================================================================
+      const clusterCoords = [
+        // Tier 1: Yuhuatai Hilltop & Concentric Trenches (Y: 440 .. 1050)
+        { x: 705,  y: 455, type: "pillbox", bonus: 0.76, count: 10 },
+        { x: 1200, y: 410, type: "pillbox", bonus: 0.78, count: 10 },
+        { x: 1695, y: 455, type: "pillbox", bonus: 0.76, count: 10 },
+
+        { x: 500,  y: 630, type: "trench",  bonus: 0.66, count: 10 },
+        { x: 920,  y: 630, type: "trench",  bonus: 0.66, count: 10 },
+        { x: 1200, y: 625, type: "trench",  bonus: 0.68, count: 10 },
+        { x: 1480, y: 630, type: "trench",  bonus: 0.66, count: 10 },
+        { x: 1900, y: 630, type: "trench",  bonus: 0.66, count: 10 },
+
+        { x: 500,  y: 830, type: "trench",  bonus: 0.65, count: 10 },
+        { x: 920,  y: 830, type: "trench",  bonus: 0.65, count: 10 },
+        { x: 1200, y: 825, type: "trench",  bonus: 0.65, count: 10 },
+        { x: 1480, y: 830, type: "trench",  bonus: 0.65, count: 10 },
+        { x: 1900, y: 830, type: "trench",  bonus: 0.65, count: 10 },
+
+        { x: 650,  y: 1030, type: "trench", bonus: 0.62, count: 10 },
+        { x: 1200, y: 1030, type: "trench", bonus: 0.62, count: 10 },
+        { x: 1750, y: 1030, type: "trench", bonus: 0.62, count: 10 },
+
+        // Tier 2: Zhonghua Gate Bastions & Approach (Y: 1360 .. 1660)
+        { x: 490,  y: 1390, type: "gate_bastion", bonus: 0.68, count: 10 },
+        { x: 1010, y: 1390, type: "gate_bastion", bonus: 0.70, count: 10 },
+        { x: 1200, y: 1380, type: "gate_bastion", bonus: 0.68, count: 10 },
+        { x: 1390, y: 1390, type: "gate_bastion", bonus: 0.70, count: 10 },
+        { x: 1910, y: 1390, type: "gate_bastion", bonus: 0.68, count: 10 },
+
+        { x: 490,  y: 1620, type: "sandbag", bonus: 0.56, count: 10 },
+        { x: 1020, y: 1620, type: "sandbag", bonus: 0.56, count: 10 },
+        { x: 1200, y: 1640, type: "sandbag", bonus: 0.56, count: 10 },
+        { x: 1380, y: 1620, type: "sandbag", bonus: 0.56, count: 10 },
+        { x: 1910, y: 1620, type: "sandbag", bonus: 0.56, count: 10 },
+
+        // Tier 3: Urban Street Intersections & Alley Barricades (Y: 1775 .. 2980)
+        { x: 490,  y: 1775, type: "barricade", bonus: 0.55, count: 10 },
+        { x: 1020, y: 1775, type: "barricade", bonus: 0.58, count: 10 },
+        { x: 1380, y: 1775, type: "barricade", bonus: 0.58, count: 10 },
+        { x: 1910, y: 1775, type: "barricade", bonus: 0.55, count: 10 },
+
+        { x: 490,  y: 2175, type: "barricade", bonus: 0.55, count: 10 },
+        { x: 1020, y: 2175, type: "barricade", bonus: 0.58, count: 10 },
+        { x: 1200, y: 2175, type: "barricade", bonus: 0.54, count: 10 },
+        { x: 1380, y: 2175, type: "barricade", bonus: 0.58, count: 10 },
+        { x: 1910, y: 2175, type: "barricade", bonus: 0.55, count: 10 },
+
+        { x: 490,  y: 2575, type: "barricade", bonus: 0.55, count: 10 },
+        { x: 1020, y: 2575, type: "barricade", bonus: 0.58, count: 10 },
+        { x: 1200, y: 2575, type: "barricade", bonus: 0.54, count: 10 },
+        { x: 1380, y: 2575, type: "barricade", bonus: 0.58, count: 10 },
+        { x: 1910, y: 2575, type: "barricade", bonus: 0.55, count: 10 },
+
+        // Tier 4: Southern Outskirts & Assembly Trenches (Y: 2980 .. 3360)
+        { x: 490,  y: 2975, type: "shellhole", bonus: 0.46, count: 10 },
+        { x: 960,  y: 2975, type: "shellhole", bonus: 0.46, count: 10 },
+        { x: 1200, y: 2975, type: "shellhole", bonus: 0.46, count: 10 },
+        { x: 1440, y: 2975, type: "shellhole", bonus: 0.46, count: 10 },
+        { x: 1910, y: 2975, type: "shellhole", bonus: 0.46, count: 10 }
+      ];
+
+      clusterCoords.forEach((sc, idx) => {
+        const cluster = { id: idx, x: sc.x, y: sc.y, type: sc.type, bonus: sc.bonus, nodes: [] };
+
+        wCtx.fillStyle = sc.type === "pillbox" ? "rgba(105, 110, 98, 0.78)" : "rgba(92, 80, 58, 0.62)";
+        wCtx.beginPath();
+        wCtx.arc(sc.x, sc.y, 26, 0, Math.PI * 2);
+        wCtx.fill();
+
+        for (let i = 0; i < sc.count; i++) {
+          const a = (i / sc.count) * Math.PI * 2;
+          const r = 24 + (i % 2) * 8;
+          const nx = sc.x + Math.cos(a) * r;
+          const ny = sc.y + Math.sin(a) * (r * 0.75);
+          const node = {
+            id: coverNodes.length,
+            clusterId: idx,
+            x: nx,
+            y: ny,
+            bonus: sc.bonus,
+            occupant: null
+          };
+          cluster.nodes.push(node);
+          coverNodes.push(node);
+        }
+        coverClusters.push(cluster);
+      });
+    }
+
+    /*************************************************************************
+     * 4. OBJECT POOLS (BULLETS, AT ROCKETS, SMOKE, SPARKS/EXPLOSIONS)
+     *************************************************************************/
+    const MAX_PROJECTILES = 600;
+    const projectiles = Array.from({ length: MAX_PROJECTILES }, () => ({
+      active: false,
+      isRocket: false,
+      x: 0, y: 0, prevX: 0, prevY: 0,
+      vx: 0, vy: 0,
+      team: 0,
+      dmg: 0,
+      supPower: 0,
+      life: 0
+    }));
+
+    const effects = [];     // Wall hit sparks, tank explosions
+    const smokeClouds = []; // Concealment smoke
+    const tapRipples = [];  // Waypoint feedback rings
+
+    function spawnProjectile(x, y, angle, speed, team, dmg, supPower, isRocket = false, rangeLife = 1.15) {
+      for (let i = 0; i < MAX_PROJECTILES; i++) {
+        const p = projectiles[i];
+        if (!p.active) {
+          p.active = true;
+          p.isRocket = isRocket;
+          p.x = x;
+          p.y = y;
+          p.prevX = x;
+          p.prevY = y;
+          p.vx = Math.cos(angle) * speed;
+          p.vy = Math.sin(angle) * speed;
+          p.team = team;
+          p.dmg = dmg;
+          p.supPower = supPower;
+          p.life = rangeLife;
+          return;
+        }
+      }
+    }
+
+    function spawnFX(x, y, maxRadius = 18, color = "#ffaa33", speed = 55) {
+      if (effects.length < 120) {
+        effects.push({ x, y, r: 2, maxR: maxRadius, alpha: 1.0, color, speed });
+      }
+    }
+
+    function spawnSmoke(x, y) {
+      smokeClouds.push({
+        x: x + rand(-12, 12),
+        y: y + rand(-12, 12),
+        r: 14,
+        maxR: 78,
+        alpha: 0.80,
+        life: 12.0
+      });
+    }
+
+    function isBlockedBySmoke(x1, y1, x2, y2) {
+      for (let i = 0; i < smokeClouds.length; i++) {
+        const s = smokeClouds[i];
+        if (pointToSegmentDistSq(s.x, s.y, x1, y1, x2, y2) < s.r * s.r) return true;
+      }
+      return false;
+    }
+
+    /*************************************************************************
+     * 5. ENEMY ARMOR (METHODICAL CRAWL SPEED + FLANKING ARMOR MULTIPLIER)
+     *************************************************************************/
+    const tanks = [];
+
+    class HeavyTank {
+      constructor(id, x, y, laneX) {
+        this.id = id;
+        this.team = TEAM_ATK;
+        this.x = x;
+        this.y = y;
+        this.laneX = laneX;
+        this.hullAngle = -Math.PI / 2;
+        this.turretAngle = -Math.PI / 2;
+        this.hp = 280;
+        this.maxHp = 280;
+        this.alive = true;
+        this.cannonTimer = rand(2.0, 4.0);
+        this.mgTimer = 0.25;
+        this.goalY = 480; // Push up the Central Boulevard toward Yuhuatai Citadel
+      }
+
+      update(dt) {
+        if (!this.alive) return;
+
+        // Methodical Heavy Armor Crawl (10.5 px/s — allows infantry & AT teams to maneuver)
+        if (this.y > this.goalY) {
+          const desiredAngle = Math.atan2(this.goalY - this.y, this.laneX - this.x);
+          const diff = normalizeAngle(desiredAngle - this.hullAngle);
+          this.hullAngle += clamp(diff, -0.8 * dt, 0.8 * dt);
+
+          const crawlSpeed = 10.5;
+          const nx = this.x + Math.cos(this.hullAngle) * crawlSpeed * dt;
+          const ny = this.y + Math.sin(this.hullAngle) * crawlSpeed * dt;
+
+          // Ensure tank does not drive through gate walls
+          if (!traceBulletAgainstWalls(this.x, this.y, nx, ny)) {
+            this.x = nx;
+            this.y = ny;
+          }
+        }
+
+        // Scan for Defender targets with clear Line-of-Sight (No shooting through walls!)
+        let target = null;
+        let bestDSq = 480 * 480;
+        for (let i = 0; i < soldiers.length; i++) {
+          const s = soldiers[i];
+          if (s.team === TEAM_DEF && s.state === STATE_ALIVE) {
+            const dSq = distSq(this.x, this.y, s.x, s.y);
+            if (dSq < bestDSq && hasClearLineOfSight(this.x, this.y, s.x, s.y)) {
+              bestDSq = dSq;
+              target = s;
+            }
+          }
+        }
+
+        if (target) {
+          const aim = Math.atan2(target.y - this.y, target.x - this.x);
+          const tDiff = normalizeAngle(aim - this.turretAngle);
+          this.turretAngle += clamp(tDiff, -1.5 * dt, 1.5 * dt);
+
+          // Coaxial MG
+          this.mgTimer -= dt;
+          if (this.mgTimer <= 0 && Math.abs(tDiff) < 0.3) {
+            spawnProjectile(
+              this.x + Math.cos(this.turretAngle) * 20,
+              this.y + Math.sin(this.turretAngle) * 20,
+              this.turretAngle + rand(-0.06, 0.06),
+              520, TEAM_ATK, 20, 0.28, false, 0.95
+            );
+            this.mgTimer = 0.16;
+          }
+
+          // Main 75mm HE Cannon
+          this.cannonTimer -= dt;
+          if (this.cannonTimer <= 0 && Math.abs(tDiff) < 0.18) {
+            spawnProjectile(
+              this.x + Math.cos(this.turretAngle) * 24,
+              this.y + Math.sin(this.turretAngle) * 24,
+              this.turretAngle + rand(-0.025, 0.025),
+              390, TEAM_ATK, 90, 0.85, true, 1.25
+            );
+            this.cannonTimer = rand(3.8, 5.2);
+          }
+        }
+      }
+
+      receiveATImpact(impactAngle, dmg) {
+        const incomingDir = normalizeAngle(impactAngle + Math.PI);
+        const offFront = Math.abs(normalizeAngle(incomingDir - this.hullAngle));
+        const isFlankOrRear = offFront > Math.PI * 0.40;
+        const actualDmg = isFlankOrRear ? dmg * 2.4 : dmg * 0.8;
+
+        this.hp -= actualDmg;
+        spawnFX(this.x, this.y, isFlankOrRear ? 34 : 20, isFlankOrRear ? "#ff3b30" : "#ffaa33", 70);
+
+        if (this.hp <= 0 && this.alive) {
+          this.alive = false;
+          spawnFX(this.x, this.y, 64, "#ff5500", 85);
+          spawnSmoke(this.x, this.y);
+        }
+      }
+    }
+
+    /*************************************************************************
+     * 6. 80-vs-80 HIERARCHICAL SQUADS & HEAVY MACHINE GUN (HMG) TEAMS
+     *************************************************************************/
+    const squads = [];
+    const soldiers = [];
+    let selectedSquadId = 0; // 0..7 for single squad, -1 for ALL 80 Player Soldiers
+
+    // Standard Assault/Trench Squad Template vs Heavy Weapon HMG Emplacement Squad Template
+    const ROLES_STANDARD = [
+      ROLE_SL, ROLE_HMG, ROLE_MG, ROLE_AT, ROLE_MEDIC,
+      ROLE_RIFLE, ROLE_RIFLE, ROLE_RIFLE, ROLE_RIFLE, ROLE_RIFLE
+    ];
+
+    const ROLES_HMG_SQUAD = [
+      ROLE_SL, ROLE_HMG, ROLE_HMG, ROLE_MG, ROLE_AT, ROLE_MEDIC,
+      ROLE_RIFLE, ROLE_RIFLE, ROLE_RIFLE, ROLE_RIFLE
+    ];
+
+    const FORMATION_SLOTS = [
+      { fx: 0, fy: 0 },     // 0: SL
+      { fx: 10, fy: -18 },  // 1: Tripod HMG #1
+      { fx: 10, fy: 18 },   // 2: HMG #2 or LMG
+      { fx: 14, fy: 38 },   // 3: AT Specialist
+      { fx: -18, fy: 0 },   // 4: Medic
+      { fx: 16, fy: -48 },  // 5..9: Riflemen screen
+      { fx: 18, fy: -30 },
+      { fx: 18, fy: 0 },
+      { fx: 18, fy: 30 },
+      { fx: 16, fy: 48 }
+    ];
+
+    class Squad {
+      constructor(id, name, team, sx, sy, isHmgSquad = false, defaultOrder = "HOLD") {
+        this.id = id;
+        this.name = name;
+        this.team = team;
+        this.isHmgSquad = isHmgSquad;
+        this.order = defaultOrder;
+        this.morale = 100;
+        this.avgSup = 0;
+        this.waypointX = sx;
+        this.waypointY = sy;
+        this.facingAngle = team === TEAM_DEF ? Math.PI / 2 : -Math.PI / 2;
+        this.targetCluster = null;
+        this.members = [];
+        this.thinkTimer = rand(0.1, 0.7);
+        this.smokeCooldown = 0;
+
+        const roleList = isHmgSquad ? ROLES_HMG_SQUAD : ROLES_STANDARD;
+        for (let i = 0; i < 10; i++) {
+          const off = FORMATION_SLOTS[i];
+          const s = new Soldier(soldiers.length, this, i, roleList[i], sx + off.fy, sy + off.fx);
+          this.members.push(s);
+          soldiers.push(s);
+        }
+      }
+
+      getLeader() {
+        for (let i = 0; i < this.members.length; i++) {
+          if (this.members[i].state === STATE_ALIVE) {
+            if (i > 0 && this.members[i].role !== ROLE_SL) {
+              this.members[i].role = ROLE_SL;
+            }
+            return this.members[i];
+          }
+        }
+        return null;
+      }
+
+      getAliveCount() {
+        let c = 0;
+        for (let i = 0; i < this.members.length; i++) {
+          if (this.members[i].state === STATE_ALIVE) c++;
+        }
+        return c;
+      }
+
+      setWaypoint(wx, wy) {
+        this.waypointX = clamp(wx, 50, WORLD_W - 50);
+        this.waypointY = clamp(wy, 80, WORLD_H - 80);
+        this.claimCoverCluster(this.waypointX, this.waypointY);
+      }
+
+      claimCoverCluster(wx, wy) {
+        for (let i = 0; i < this.members.length; i++) {
+          const m = this.members[i];
+          if (m.coverNode) {
+            m.coverNode.occupant = null;
+            m.coverNode = null;
+          }
+        }
+
+        let bestCluster = null;
+        let bestDSq = 155 * 155;
+        for (let i = 0; i < coverClusters.length; i++) {
+          const c = coverClusters[i];
+          const dSq = distSq(wx, wy, c.x, c.y);
+          if (dSq < bestDSq) {
+            bestDSq = dSq;
+            bestCluster = c;
+          }
+        }
+
+        this.targetCluster = bestCluster;
+        if (!bestCluster) return;
+
+        this.waypointX = bestCluster.x;
+        this.waypointY = bestCluster.y;
+
+        for (let i = 0; i < this.members.length; i++) {
+          const m = this.members[i];
+          if (m.state !== STATE_ALIVE) continue;
+          let chosen = null;
+          let minDSq = Infinity;
+          for (let j = 0; j < bestCluster.nodes.length; j++) {
+            const n = bestCluster.nodes[j];
+            if (!n.occupant) {
+              const dSq = distSq(m.x, m.y, n.x, n.y);
+              if (dSq < minDSq) {
+                minDSq = dSq;
+                chosen = n;
+              }
+            }
+          }
+          if (chosen) {
+            chosen.occupant = m;
+            m.coverNode = chosen;
+          }
+        }
+      }
+
+      setOrder(ord) {
+        this.order = ord;
+        const leader = this.getLeader();
+        if (!leader) return;
+        if (ord === "FALLBACK") {
+          const retreatY = this.team === TEAM_DEF
+            ? Math.max(400, leader.y - 260)
+            : Math.min(WORLD_H - 200, leader.y + 260);
+          this.setWaypoint(leader.x, retreatY);
+          this.popSmoke();
+        } else if (ord === "HOLD") {
+          this.setWaypoint(leader.x, leader.y);
+        }
+      }
+
+      popSmoke() {
+        if (this.smokeCooldown > 0) return;
+        const leader = this.getLeader();
+        if (!leader) return;
+        this.smokeCooldown = 13.0;
+        spawnSmoke(
+          leader.x + Math.cos(this.facingAngle) * 70,
+          leader.y + Math.sin(this.facingAngle) * 70
+        );
+      }
+
+      updateMacroAI(dt) {
+        if (this.smokeCooldown > 0) this.smokeCooldown -= dt;
+        const leader = this.getLeader();
+        if (!leader) return;
+
+        let supSum = 0, alive = 0;
+        for (let i = 0; i < this.members.length; i++) {
+          const m = this.members[i];
+          if (m.state === STATE_ALIVE) {
+            supSum += m.suppression;
+            alive++;
+          }
+        }
+        this.avgSup = alive > 0 ? supSum / alive : 0;
+
+        if (this.avgSup < 0.35) this.morale = clamp(this.morale + 3.2 * dt, 0, 100);
+        else if (this.avgSup > 0.65) this.morale = clamp(this.morale - 6.0 * dt, 0, 100);
+
+        if (this.morale < 20 && this.order !== "FALLBACK") {
+          this.setOrder("FALLBACK");
+        } else if (this.morale > 65 && this.order === "FALLBACK" && this.team === TEAM_ATK) {
+          this.order = "ADVANCE";
+        }
+
+        this.thinkTimer -= dt;
+        if (this.thinkTimer > 0) return;
+        this.thinkTimer = 0.65;
+
+        // Orient toward closest enemy squad leader
+        let tx = 1200, ty = this.team === TEAM_DEF ? 2600 : 800;
+        let minDSq = Infinity;
+        for (let i = 0; i < squads.length; i++) {
+          const other = squads[i];
+          if (other.team !== this.team) {
+            const ol = other.getLeader();
+            if (ol) {
+              const dSq = distSq(leader.x, leader.y, ol.x, ol.y);
+              if (dSq < minDSq) {
+                minDSq = dSq;
+                tx = ol.x;
+                ty = ol.y;
+              }
+            }
+          }
+        }
+        this.facingAngle = Math.atan2(ty - leader.y, tx - leader.x);
+
+        // Enemy AI Commander: Coordinates 8 Assault Squads pushing North through streets & gates
+        if (this.team === TEAM_ATK) {
+          if (this.order === "FALLBACK") return;
+          if (this.avgSup > 0.58 && this.smokeCooldown <= 0) this.popSmoke();
+
+          // Choose assault lane (West sally-port: 490, Central Gate: 1020..1380, East sally-port: 1910)
+          const atkIdx = this.id - 8;
+          const lanes = [490, 490, 1020, 1140, 1260, 1380, 1910, 1910];
+          const targetLaneX = lanes[atkIdx] || 1200;
+
+          // HMG support squads pause at cover clusters to provide suppressive base-of-fire
+          if (this.isHmgSquad && minDSq < 640 * 640) {
+            this.order = "HOLD";
+            return;
+          }
+
+          this.order = "ADVANCE";
+          const nextY = Math.max(420, leader.y - 160);
+          this.setWaypoint(targetLaneX, nextY);
+        }
+      }
+    }
+
+    class Soldier {
+      constructor(id, squad, slotIdx, role, x, y) {
+        this.id = id;
+        this.squad = squad;
+        this.team = squad.team;
+        this.slotIdx = slotIdx;
+        this.role = role;
+        this.x = x;
+        this.y = y;
+        this.state = STATE_ALIVE;
+        this.bleedout = 15.0;
+        this.suppression = 0;
+        this.inCover = false;
+        this.coverNode = null;
+        this.tripodDeployed = false;
+        this.stationaryTime = 0;
+        this.fireTimer = rand(0.1, 0.9);
+        this.burstLeft = 0;
+        this.target = null;
+        this.muzzleTimer = 0;
+      }
+
+      update(dt) {
+        if (this.state === STATE_DEAD) return;
+        if (this.muzzleTimer > 0) this.muzzleTimer -= dt;
+
+        if (this.state === STATE_DOWNED) {
+          this.bleedout -= dt;
+          if (this.bleedout <= 0) {
+            this.state = STATE_DEAD;
+            if (this.coverNode) {
+              this.coverNode.occupant = null;
+              this.coverNode = null;
+            }
+            this.squad.morale = clamp(this.squad.morale - 7, 0, 100);
+          }
+          return;
+        }
+
+        const decay = this.inCover ? 0.25 : 0.12;
+        this.suppression = clamp(this.suppression - decay * dt, 0, 1);
+
+        // Medic Revive Logic
+        if (this.role === ROLE_MEDIC && this.updateMedic(dt)) return;
+
+        // Anti-Tank Flanking Logic
+        let atDest = null;
+        if (this.role === ROLE_AT) {
+          atDest = this.updateAntiTank(dt);
+        }
+
+        let destX = this.squad.waypointX;
+        let destY = this.squad.waypointY;
+
+        if (atDest) {
+          destX = atDest.x;
+          destY = atDest.y;
+        } else if (this.coverNode) {
+          destX = this.coverNode.x;
+          destY = this.coverNode.y;
+        } else {
+          const off = FORMATION_SLOTS[this.slotIdx];
+          const cosA = Math.cos(this.squad.facingAngle);
+          const sinA = Math.sin(this.squad.facingAngle);
+          destX = this.squad.waypointX + (off.fx * cosA - off.fy * sinA);
+          destY = this.squad.waypointY + (off.fx * sinA + off.fy * cosA);
+        }
+
+        const dx = destX - this.x;
+        const dy = destY - this.y;
+        const d = Math.hypot(dx, dy);
+        this.inCover = Boolean(this.coverNode && d < 12);
+
+        const isPinned = this.suppression > 0.78 && this.squad.order !== "FALLBACK";
+        // HMG team carries a heavy tripod & receiver (slower movement speed)
+        let speed = this.role === ROLE_HMG ? 38 : (this.role === ROLE_MG ? 50 : 65);
+        if (this.squad.order === "FALLBACK") speed *= 1.18;
+        if (this.suppression > 0.35) speed *= (1 - this.suppression * 0.45);
+        if (isPinned && this.inCover) speed = 0;
+
+        if (d > 5 && !(isPinned && this.inCover)) {
+          this.stationaryTime = 0;
+          this.tripodDeployed = false;
+
+          let sepX = 0, sepY = 0;
+          for (let i = 0; i < this.squad.members.length; i++) {
+            const m = this.squad.members[i];
+            if (m !== this && m.state === STATE_ALIVE) {
+              const ox = this.x - m.x;
+              const oy = this.y - m.y;
+              const odSq = ox * ox + oy * oy;
+              if (odSq > 0.1 && odSq < 16 * 16) {
+                const inv = 1 / Math.sqrt(odSq);
+                sepX += ox * inv * 20;
+                sepY += oy * inv * 20;
+              }
+            }
+          }
+
+          const stepX = ((dx / d) * speed + sepX) * dt;
+          const stepY = ((dy / d) * speed + sepY) * dt;
+
+          // Slide smoothly along walls/buildings rather than clipping inside
+          if (!this.collidesWithObstacle(this.x + stepX, this.y)) {
+            this.x = clamp(this.x + stepX, 20, WORLD_W - 20);
+          }
+          if (!this.collidesWithObstacle(this.x, this.y + stepY)) {
+            this.y = clamp(this.y + stepY, 30, WORLD_H - 30);
+          }
+        } else {
+          this.stationaryTime += dt;
+          if (this.role === ROLE_HMG && this.stationaryTime >= 1.3) {
+            this.tripodDeployed = true;
+          }
+        }
+
+        this.updateWeaponFire(dt);
+      }
+
+      collidesWithObstacle(px, py) {
+        const pad = 5;
+        for (let i = 0; i < solidObstacles.length; i++) {
+          const ob = solidObstacles[i];
+          if (px + pad > ob.x && px - pad < ob.x + ob.w && py + pad > ob.y && py - pad < ob.y + ob.h) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      updateMedic(dt) {
+        let patient = null;
+        let minDSq = Infinity;
+        for (let i = 0; i < this.squad.members.length; i++) {
+          const m = this.squad.members[i];
+          if (m.state === STATE_DOWNED) {
+            const dSq = distSq(this.x, this.y, m.x, m.y);
+            if (dSq < minDSq) {
+              minDSq = dSq;
+              patient = m;
+            }
+          }
+        }
+        if (!patient) return false;
+
+        const d = Math.sqrt(minDSq);
+        if (d > 14) {
+          const sx = ((patient.x - this.x) / d) * 76 * dt;
+          const sy = ((patient.y - this.y) / d) * 76 * dt;
+          if (!this.collidesWithObstacle(this.x + sx, this.y + sy)) {
+            this.x += sx;
+            this.y += sy;
+          }
+        } else {
+          patient.state = STATE_ALIVE;
+          patient.bleedout = 15.0;
+          patient.suppression = 0.25;
+          this.squad.morale = clamp(this.squad.morale + 6, 0, 100);
+        }
+        return true;
+      }
+
+      updateAntiTank(dt) {
+        let bestTank = null;
+        let minDSq = 340 * 340;
+        for (let i = 0; i < tanks.length; i++) {
+          const t = tanks[i];
+          if (t.alive && t.team !== this.team) {
+            const dSq = distSq(this.x, this.y, t.x, t.y);
+            if (dSq < minDSq) {
+              minDSq = dSq;
+              bestTank = t;
+            }
+          }
+        }
+        if (!bestTank) return null;
+
+        this.fireTimer -= dt;
+        if (minDSq <= 250 * 250 && this.fireTimer <= 0 && hasClearLineOfSight(this.x, this.y, bestTank.x, bestTank.y)) {
+          const aim = Math.atan2(bestTank.y - this.y, bestTank.x - this.x) + rand(-0.035, 0.035);
+          spawnProjectile(this.x, this.y, aim, 390, this.team, 68, 0.55, true, 0.85);
+          this.muzzleTimer = 0.14;
+          this.fireTimer = rand(3.2, 4.5);
+        }
+
+        // Seek side-street flanking angle
+        const flankDir = this.x < bestTank.x ? -1 : 1;
+        return {
+          x: clamp(bestTank.x + flankDir * 115, 60, WORLD_W - 60),
+          y: clamp(bestTank.y - 15, 80, WORLD_H - 80)
+        };
+      }
+
+      updateWeaponFire(dt) {
+        if (this.suppression > 0.84) return;
+        // Tripod HMG must deploy its tripod before firing
+        if (this.role === ROLE_HMG && !this.tripodDeployed) return;
+
+        this.fireTimer -= dt;
+        if (this.fireTimer > 0) return;
+
+        const maxRange = this.role === ROLE_HMG ? 680 : (this.role === ROLE_MG ? 500 : 410);
+
+        if (!this.target || this.target.state !== STATE_ALIVE || Math.random() < 0.25) {
+          this.target = this.findVisibleEnemy(maxRange);
+        }
+        if (!this.target) {
+          this.fireTimer = 0.35;
+          return;
+        }
+
+        if (!hasClearLineOfSight(this.x, this.y, this.target.x, this.target.y)) {
+          this.target = null;
+          this.fireTimer = 0.35;
+          return;
+        }
+
+        const baseAngle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+        const sway = (this.role === ROLE_HMG ? 0.032 : 0.045) + this.suppression * 0.15;
+        const shotAngle = baseAngle + rand(-sway, sway);
+
+        if (this.role === ROLE_HMG) {
+          // Tripod HMG: 8-round sustained burst, 680px range, extreme suppression output (0.36)
+          spawnProjectile(this.x, this.y, shotAngle, 620, this.team, 26, 0.36, false, 1.15);
+          this.muzzleTimer = 0.07;
+          if (this.burstLeft > 0) {
+            this.burstLeft--;
+            this.fireTimer = 0.075;
+          } else {
+            this.burstLeft = 7;
+            this.fireTimer = rand(0.75, 1.25);
+          }
+        } else if (this.role === ROLE_MG) {
+          // Light MG: 5-round burst
+          spawnProjectile(this.x, this.y, shotAngle, 560, this.team, 21, 0.25, false, 0.95);
+          this.muzzleTimer = 0.06;
+          if (this.burstLeft > 0) {
+            this.burstLeft--;
+            this.fireTimer = 0.095;
+          } else {
+            this.burstLeft = 4;
+            this.fireTimer = rand(1.1, 1.7);
+          }
+        } else {
+          // Standard Rifle / SMG
+          spawnProjectile(this.x, this.y, shotAngle, 560, this.team, 32, 0.13, false, 0.80);
+          this.muzzleTimer = 0.05;
+          this.fireTimer = rand(0.95, 1.65);
+        }
+      }
+
+      findVisibleEnemy(maxRange) {
+        let best = null;
+        let bestScore = maxRange * maxRange;
+
+        for (let i = 0; i < soldiers.length; i++) {
+          const other = soldiers[i];
+          if (other.team !== this.team && other.state === STATE_ALIVE) {
+            const dSq = distSq(this.x, this.y, other.x, other.y);
+            if (dSq < bestScore) {
+              const coverMod = other.inCover ? 1.3 : 0.85;
+              if (dSq * coverMod < bestScore && hasClearLineOfSight(this.x, this.y, other.x, other.y)) {
+                bestScore = dSq * coverMod;
+                best = other;
+              }
+            }
+          }
+        }
+        return best;
+      }
+    }
+
+    /*************************************************************************
+     * 7. INITIALIZE 80-vs-80 DEPLOYMENT & STEP BALLISTICS
+     *************************************************************************/
+    function initBattle() {
+      squads.length = 0;
+      soldiers.length = 0;
+      tanks.length = 0;
+      smokeClouds.length = 0;
+      effects.length = 0;
+      projectiles.forEach(p => (p.active = false));
+
+      buildTheatreMap();
+
+      // 8 Player Garrison Squads (80 Men across Yuhuatai Hills, Zhonghua Gate & Urban Outposts)
+      const defConfigs = [
+        { name: "1st HILL",     x: 705,  y: 455,  hmg: false },
+        { name: "2nd HILL",     x: 1695, y: 455,  hmg: false },
+        { name: "3rd HMG ╦",    x: 920,  y: 830,  hmg: true  },
+        { name: "4th HMG ╦",    x: 1480, y: 830,  hmg: true  },
+        { name: "5th GATE",     x: 1200, y: 1380, hmg: true  },
+        { name: "6th WEST",     x: 490,  y: 1775, hmg: false },
+        { name: "7th EAST",     x: 1910, y: 1775, hmg: false },
+        { name: "8th VANGUARD", x: 1020, y: 2175, hmg: false }
+      ];
+
+      defConfigs.forEach((cfg, idx) => {
+        const sq = new Squad(idx, cfg.name, TEAM_DEF, cfg.x, cfg.y, cfg.hmg, "HOLD");
+        sq.setWaypoint(cfg.x, cfg.y);
+        squads.push(sq);
+      });
+
+      // 8 Enemy Assault Squads (80 Men deployed far South at Y: 3150..3420 for realistic front-line phase)
+      const atkConfigs = [
+        { name: "ASSAULT 1", x: 490,  y: 3180, hmg: false },
+        { name: "ASSAULT 2", x: 490,  y: 3380, hmg: true  },
+        { name: "ASSAULT 3", x: 1020, y: 3150, hmg: false },
+        { name: "ASSAULT 4", x: 1150, y: 3340, hmg: false },
+        { name: "ASSAULT 5", x: 1260, y: 3340, hmg: true  },
+        { name: "ASSAULT 6", x: 1380, y: 3150, hmg: false },
+        { name: "ASSAULT 7", x: 1910, y: 3180, hmg: false },
+        { name: "ASSAULT 8", x: 1910, y: 3380, hmg: false }
+      ];
+
+      atkConfigs.forEach((cfg, idx) => {
+        const sq = new Squad(idx + 8, cfg.name, TEAM_ATK, cfg.x, cfg.y, cfg.hmg, "ADVANCE");
+        sq.setWaypoint(cfg.x, cfg.y - 220);
+        squads.push(sq);
+      });
+
+      // Spawn 3 Slow-Crawling Heavy Tanks in the Southern Boulevard
+      tanks.push(new HeavyTank(0, 1130, 3260, 1130));
+      tanks.push(new HeavyTank(1, 1270, 3380, 1270));
+      tanks.push(new HeavyTank(2, 1200, 3500, 1200));
+
+      // Center initial camera on the urban frontline
+      camera.x = 1200;
+      camera.y = 2050;
+      camera.zoom = 0.56;
+      clampCamera();
+      selectSquad(7, false);
+    }
+
+    function stepProjectilesAndWallPhysics(dt) {
+      let activeCount = 0;
+      const supRadSq = 28 * 28;
+      const hitRadSq = 7.5 * 7.5;
+
+      for (let i = 0; i < MAX_PROJECTILES; i++) {
+        const p = projectiles[i];
+        if (!p.active) continue;
+
+        p.prevX = p.x;
+        p.prevY = p.y;
+        const nextX = p.x + p.vx * dt;
+        const nextY = p.y + p.vy * dt;
+        p.life -= dt;
+
+        if (p.life <= 0 || nextX < 0 || nextX > WORLD_W || nextY < 0 || nextY > WORLD_H) {
+          p.active = false;
+          continue;
+        }
+
+        // 1. STRICT WALL COLLISION CHECK: Stop projectile if segment hits any building/gate/bunker
+        const wallHit = traceBulletAgainstWalls(p.prevX, p.prevY, nextX, nextY);
+        if (wallHit) {
+          spawnFX(wallHit.x, wallHit.y, p.isRocket ? 24 : 5, p.isRocket ? "#ff7722" : "#d5cbb8", 45);
+          p.active = false;
+          continue;
+        }
+
+        p.x = nextX;
+        p.y = nextY;
+        activeCount++;
+
+        // 2. Check Tank Armor Hits
+        for (let t = 0; t < tanks.length; t++) {
+          const tk = tanks[t];
+          if (!tk.alive || tk.team === p.team) continue;
+          if (distSq(p.x, p.y, tk.x, tk.y) < 22 * 22) {
+            if (p.isRocket) {
+              tk.receiveATImpact(Math.atan2(p.vy, p.vx), p.dmg);
+            } else if (Math.random() < 0.3) {
+              spawnFX(p.x, p.y, 6, "#ffe680", 40);
+            }
+            p.active = false;
+            break;
+          }
+        }
+        if (!p.active) continue;
+
+        // 3. Check 160 Infantry Suppression & Hits
+        for (let j = 0; j < soldiers.length; j++) {
+          const s = soldiers[j];
+          if (s.team === p.team || s.state !== STATE_ALIVE) continue;
+          if (Math.abs(s.x - p.x) > 34 || Math.abs(s.y - p.y) > 34) continue;
+
+          const segDSq = pointToSegmentDistSq(s.x, s.y, p.prevX, p.prevY, p.x, p.y);
+          if (segDSq < supRadSq) {
+            const mit = s.inCover ? 0.48 : 1.0;
+            s.suppression = clamp(s.suppression + p.supPower * mit, 0, 1);
+          }
+
+          if (segDSq < (p.isRocket ? 20 * 20 : hitRadSq)) {
+            if (p.isRocket) spawnFX(p.x, p.y, 28, "#ff661a", 65);
+            const hillAdv = s.y < 1100 ? 0.14 : 0;
+            const covSave = s.inCover && s.coverNode ? s.coverNode.bonus : 0.06;
+            if (Math.random() > clamp(covSave + hillAdv, 0, 0.85) || p.isRocket) {
+              s.state = Math.random() < 0.70 ? STATE_DOWNED : STATE_DEAD;
+              s.bleedout = 15.0;
+              s.squad.morale = clamp(s.squad.morale - (s.role === ROLE_SL ? 14 : 6), 0, 100);
+            }
+            p.active = false;
+            break;
+          }
+        }
+      }
+      return activeCount;
+    }
+
+    function updateStrategicSectors(dt) {
+      for (let i = 0; i < sectors.length; i++) {
+        const sec = sectors[i];
+        let defC = 0, atkC = 0;
+        const rSq = sec.r * sec.r;
+        for (let j = 0; j < soldiers.length; j++) {
+          const s = soldiers[j];
+          if (s.state === STATE_ALIVE && distSq(s.x, s.y, sec.x, sec.y) <= rSq) {
+            if (s.team === TEAM_DEF) defC++;
+            else atkC++;
+          }
+        }
+        const diff = defC - atkC;
+        if (diff !== 0) {
+          sec.cap = clamp(sec.cap + diff * 3.5 * dt, -100, 100);
+          if (sec.cap >= 75) sec.owner = TEAM_DEF;
+          else if (sec.cap <= -75) sec.owner = TEAM_ATK;
+          else if (Math.abs(sec.cap) < 25) sec.owner = -1;
+        }
+      }
+    }
+
+    /*************************************************************************
+     * 8. CAMERA VIEWPORT RENDERER + MINIMAP RENDERER
+     *************************************************************************/
+    function renderTheatre() {
+      ctx.fillStyle = "#171a13";
+      ctx.fillRect(0, 0, screenW, screenH);
+
+      ctx.save();
+      ctx.translate(screenW * 0.5, screenH * 0.5);
+      ctx.scale(camera.zoom, camera.zoom);
+      ctx.translate(-camera.x, -camera.y);
+
+      // Compute visible world bounds for frustum culling
+      const halfW = (screenW * 0.5) / camera.zoom + 90;
+      const halfH = (screenH * 0.5) / camera.zoom + 90;
+      const visLeft = camera.x - halfW, visRight = camera.x + halfW;
+      const visTop = camera.y - halfH, visBot = camera.y + halfH;
+
+      // 1. Blit visible slice of pre-rendered 2400x3600 world terrain
+      ctx.drawImage(worldCanvas, 0, 0);
+
+      // 2. Strategic Capture Rings
+      for (let i = 0; i < sectors.length; i++) {
+        const sec = sectors[i];
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(sec.x, sec.y, sec.r, 0, Math.PI * 2);
+        ctx.strokeStyle = sec.owner === TEAM_DEF ? "rgba(77,166,255,0.65)" :
+                          sec.owner === TEAM_ATK ? "rgba(255,92,77,0.65)" : "rgba(245,176,65,0.65)";
+        ctx.lineWidth = 3;
+        ctx.setLineDash([12, 8]);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 3. Visible Cover Nodes
+      for (let i = 0; i < coverNodes.length; i++) {
+        const n = coverNodes[i];
+        if (n.x < visLeft || n.x > visRight || n.y < visTop || n.y > visBot) continue;
+        ctx.fillStyle = n.occupant ? "rgba(245, 176, 65, 0.88)" : "rgba(210, 200, 165, 0.25)";
+        ctx.fillRect(n.x - 3, n.y - 3, 6, 6);
+      }
+
+      // 4. Selected Squad Waypoint Vectors
+      for (let i = 0; i < 8; i++) {
+        if (selectedSquadId === -1 || selectedSquadId === i) {
+          const sq = squads[i];
+          const leader = sq.getLeader();
+          if (leader) {
+            ctx.save();
+            ctx.strokeStyle = selectedSquadId === -1 ? "rgba(255, 215, 0, 0.55)" : "rgba(77, 166, 255, 0.8)";
+            ctx.lineWidth = 2.2;
+            ctx.setLineDash([8, 6]);
+            ctx.beginPath();
+            ctx.moveTo(leader.x, leader.y);
+            ctx.lineTo(sq.waypointX, sq.waypointY);
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.arc(sq.waypointX, sq.waypointY, 15, 0, Math.PI * 2);
+            ctx.strokeStyle = "#f5b041";
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+      }
+
+      // 5. Heavy Armored Tanks
+      for (let i = 0; i < tanks.length; i++) {
+        const t = tanks[i];
+        if (t.x < visLeft || t.x > visRight || t.y < visTop || t.y > visBot) continue;
+
+        ctx.save();
+        ctx.translate(t.x, t.y);
+        ctx.rotate(t.hullAngle);
+
+        if (!t.alive) {
+          ctx.fillStyle = "#1c1a17";
+          ctx.fillRect(-22, -15, 44, 30);
+          ctx.restore();
+          continue;
+        }
+
+        // Tracks & Hull
+        ctx.fillStyle = "#1e201b";
+        ctx.fillRect(-24, -17, 48, 6);
+        ctx.fillRect(-24, 11, 48, 6);
+        ctx.fillStyle = "#70483c";
+        ctx.fillRect(-20, -12, 40, 24);
+        ctx.strokeStyle = "#1a1412";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-20, -12, 40, 24);
+        // Front armor stripe
+        ctx.fillStyle = "#ff5c4d";
+        ctx.fillRect(16, -9, 3, 18);
+        ctx.restore();
+
+        // Turret
+        ctx.save();
+        ctx.translate(t.x, t.y);
+        ctx.rotate(t.turretAngle);
+        ctx.fillStyle = "#54362d";
+        ctx.beginPath();
+        ctx.arc(0, 0, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#2b2623";
+        ctx.fillRect(8, -2.5, 22, 5);
+        ctx.restore();
+
+        // Tank HP Bar
+        const pct = clamp(t.hp / t.maxHp, 0, 1);
+        ctx.fillStyle = "rgba(0,0,0,0.75)";
+        ctx.fillRect(t.x - 22, t.y - 26, 44, 5);
+        ctx.fillStyle = pct > 0.4 ? "#f5b041" : "#ff3b30";
+        ctx.fillRect(t.x - 22, t.y - 26, 44 * pct, 5);
+      }
+
+      // 6. Projectiles (Bullets & AT Rockets)
+      for (let i = 0; i < MAX_PROJECTILES; i++) {
+        const p = projectiles[i];
+        if (!p.active) continue;
+        if (p.x < visLeft || p.x > visRight || p.y < visTop || p.y > visBot) continue;
+
+        ctx.strokeStyle = p.isRocket ? "#e8daef" : (p.team === TEAM_DEF ? "#ffe680" : "#ff8566");
+        ctx.lineWidth = p.isRocket ? 3.6 : 1.8;
+        ctx.beginPath();
+        ctx.moveTo(p.prevX, p.prevY);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+      }
+
+      // 7. 160 Soldiers (Frustum-Culled)
+      for (let i = 0; i < soldiers.length; i++) {
+        const s = soldiers[i];
+        if (s.x < visLeft || s.x > visRight || s.y < visTop || s.y > visBot) continue;
+
+        if (s.state === STATE_DEAD) {
+          ctx.fillStyle = "rgba(15, 15, 15, 0.45)";
+          ctx.fillRect(s.x - 3, s.y - 3, 6, 6);
+          continue;
+        }
+
+        if (s.state === STATE_DOWNED) {
+          ctx.fillStyle = "#e74c3c";
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, 4.8, 0, Math.PI * 2);
+          ctx.fill();
+          continue;
+        }
+
+        // Deployed HMG Tripod legs indicator
+        if (s.role === ROLE_HMG && s.tripodDeployed) {
+          ctx.strokeStyle = "#ff8c1a";
+          ctx.lineWidth = 2;
+          const fa = s.squad.facingAngle;
+          ctx.beginPath();
+          ctx.moveTo(s.x, s.y);
+          ctx.lineTo(s.x + Math.cos(fa - 0.5) * 12, s.y + Math.sin(fa - 0.5) * 12);
+          ctx.moveTo(s.x, s.y);
+          ctx.lineTo(s.x + Math.cos(fa + 0.5) * 12, s.y + Math.sin(fa + 0.5) * 12);
+          ctx.stroke();
+        }
+
+        // Highlight selected squad
+        if (s.team === TEAM_DEF && (selectedSquadId === -1 || s.squad.id === selectedSquadId)) {
+          ctx.strokeStyle = s.role === ROLE_SL ? "#ffd700" : "rgba(77, 166, 255, 0.75)";
+          ctx.lineWidth = s.role === ROLE_SL ? 2.2 : 1.2;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.role === ROLE_SL ? 11 : 8, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // Suppression meter arc
+        if (s.suppression > 0.25) {
+          ctx.strokeStyle = s.suppression > 0.72 ? "#ff3b30" : "#f5b041";
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, 9.2, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * s.suppression);
+          ctx.stroke();
+        }
+
+        // Soldier Circle
+        const rad = s.role === ROLE_SL ? 6.8 : (s.role === ROLE_HMG ? 6.2 : 5.2);
+        ctx.fillStyle = s.team === TEAM_DEF ? "#3a8ee6" : "#d9463e";
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, rad, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Role Badge
+        if (s.role !== ROLE_RIFLE) {
+          ctx.font = "bold 9px sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillStyle = s.role === ROLE_SL ? "#ffd700" :
+                          s.role === ROLE_HMG ? "#ff9933" :
+                          s.role === ROLE_AT ? "#e8daef" :
+                          s.role === ROLE_MG ? "#ffe082" : "#7dffb3";
+          const sym = s.role === ROLE_SL ? "★" :
+                      s.role === ROLE_HMG ? "╦" :
+                      s.role === ROLE_AT ? "◆" :
+                      s.role === ROLE_MG ? "▲" : "+";
+          ctx.fillText(sym, s.x, s.y);
+        }
+      }
+
+      // 8. Squad Leader Floating Callsigns
+      ctx.font = "bold 10px sans-serif";
+      ctx.textAlign = "center";
+      for (let i = 0; i < squads.length; i++) {
+        const sq = squads[i];
+        const leader = sq.getLeader();
+        if (!leader) continue;
+        if (leader.x < visLeft || leader.x > visRight || leader.y < visTop || leader.y > visBot) continue;
+
+        const ty = leader.y - 18;
+        ctx.fillStyle = "rgba(16, 20, 14, 0.85)";
+        ctx.fillRect(leader.x - 36, ty - 8, 72, 14);
+        ctx.fillStyle = sq.team === TEAM_DEF ? "#85c1ff" : "#ff948a";
+        ctx.fillText(`${sq.name} [${sq.order[0]}]`, leader.x, ty - 1);
+      }
+
+      // 9. Wall Sparks, Explosions, Smoke & Waypoint Ripples
+      for (let i = effects.length - 1; i >= 0; i--) {
+        const fx = effects[i];
+        ctx.fillStyle = fx.color;
+        ctx.globalAlpha = fx.alpha;
+        ctx.beginPath();
+        ctx.arc(fx.x, fx.y, fx.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      }
+
+      for (let i = 0; i < smokeClouds.length; i++) {
+        const sm = smokeClouds[i];
+        ctx.fillStyle = `rgba(220, 226, 216, ${sm.alpha * 0.65})`;
+        ctx.beginPath();
+        ctx.arc(sm.x, sm.y, sm.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      for (let i = tapRipples.length - 1; i >= 0; i--) {
+        const rp = tapRipples[i];
+        ctx.strokeStyle = `rgba(245, 176, 65, ${rp.alpha})`;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function renderMinimap() {
+      const mw = miniCanvas.width;
+      const mh = miniCanvas.height;
+      const scaleX = mw / WORLD_W;
+      const scaleY = mh / WORLD_H;
+
+      mCtx.fillStyle = "#22271b";
+      mCtx.fillRect(0, 0, mw, mh);
+
+      // Draw Yuhuatai Hilltop & Zhonghua Gate line on minimap
+      mCtx.fillStyle = "#39422d";
+      mCtx.beginPath();
+      mCtx.arc(1200 * scaleX, 460 * scaleY, 35, 0, Math.PI * 2);
+      mCtx.fill();
+
+      mCtx.fillStyle = "#6e5547";
+      mCtx.fillRect(0, 1450 * scaleY, mw, 5);
+
+      // Draw Tanks
+      for (let i = 0; i < tanks.length; i++) {
+        const t = tanks[i];
+        if (!t.alive) continue;
+        mCtx.fillStyle = "#f5b041";
+        mCtx.fillRect(t.x * scaleX - 2.5, t.y * scaleY - 2.5, 5, 5);
+      }
+
+      // Draw Squad Leaders
+      for (let i = 0; i < squads.length; i++) {
+        const sq = squads[i];
+        const l = sq.getLeader();
+        if (!l) continue;
+        mCtx.fillStyle = sq.team === TEAM_DEF ? "#4da6ff" : "#ff5c4d";
+        mCtx.beginPath();
+        mCtx.arc(l.x * scaleX, l.y * scaleY, sq.id === selectedSquadId ? 3.5 : 2.2, 0, Math.PI * 2);
+        mCtx.fill();
+      }
+
+      // Draw Camera Viewport Rectangle
+      const vw = (screenW / camera.zoom) * scaleX;
+      const vh = (screenH / camera.zoom) * scaleY;
+      const vx = camera.x * scaleX - vw * 0.5;
+      const vy = camera.y * scaleY - vh * 0.5;
+      mCtx.strokeStyle = "#ffffff";
+      mCtx.lineWidth = 1.2;
+      mCtx.strokeRect(vx, vy, vw, vh);
+    }
+
+    /*************************************************************************
+     * 9. TOUCH / MOUSE PAN, PINCH-ZOOM & TAP-TO-COMMAND GESTURE ENGINE
+     *************************************************************************/
+    const activePointers = new Map();
+    let panStartX = 0, panStartY = 0;
+    let camOriginX = 0, camOriginY = 0;
+    let pointerDownTime = 0;
+    let maxDragDist = 0;
+    let lastPinchDist = 0;
+
+    canvas.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      canvas.setPointerCapture(e.pointerId);
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (activePointers.size === 1) {
+        panStartX = e.clientX;
+        panStartY = e.clientY;
+        camOriginX = camera.x;
+        camOriginY = camera.y;
+        pointerDownTime = performance.now();
+        maxDragDist = 0;
+      } else if (activePointers.size === 2) {
+        const pts = Array.from(activePointers.values());
+        lastPinchDist = dist(pts[0].x, pts[0].y, pts[1].x, pts[1].y);
+      }
+    });
+
+    canvas.addEventListener("pointermove", (e) => {
+      if (!activePointers.has(e.pointerId)) return;
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (activePointers.size === 1) {
+        const dx = e.clientX - panStartX;
+        const dy = e.clientY - panStartY;
+        maxDragDist = Math.max(maxDragDist, Math.hypot(dx, dy));
+
+        if (maxDragDist > 6) {
+          camera.x = camOriginX - dx / camera.zoom;
+          camera.y = camOriginY - dy / camera.zoom;
+          clampCamera();
+        }
+      } else if (activePointers.size === 2) {
+        const pts = Array.from(activePointers.values());
+        const curDist = dist(pts[0].x, pts[0].y, pts[1].x, pts[1].y);
+        if (lastPinchDist > 10) {
+          const scale = curDist / lastPinchDist;
+          camera.zoom = clamp(camera.zoom * scale, camera.minZoom, camera.maxZoom);
+          clampCamera();
+        }
+        lastPinchDist = curDist;
+        maxDragDist = 999; // Suppress tap command after pinch
+      }
+    });
+
+    function handlePointerUp(e) {
+      activePointers.delete(e.pointerId);
+      const elapsed = performance.now() - pointerDownTime;
+
+      // Quick tap (< 280ms and < 10px drag) = Select Squad Leader or Issue Waypoint!
+      if (activePointers.size === 0 && maxDragDist < 10 && elapsed < 280) {
+        const worldPt = screenToWorld(e.clientX, e.clientY);
+
+        // Check if player tapped directly on a friendly Squad Leader
+        for (let i = 0; i < 8; i++) {
+          const leader = squads[i].getLeader();
+          if (leader && dist(worldPt.x, worldPt.y, leader.x, leader.y) < 38) {
+            selectSquad(i, false);
+            return;
+          }
+        }
+
+        // Issue tactical waypoint to selected squad (or spread formation across all 8 squads)
+        if (selectedSquadId === -1) {
+          const offsets = [-520, -370, -220, -75, 75, 220, 370, 520];
+          for (let i = 0; i < 8; i++) {
+            squads[i].setWaypoint(worldPt.x + offsets[i], worldPt.y);
+          }
+        } else if (squads[selectedSquadId]) {
+          squads[selectedSquadId].setWaypoint(worldPt.x, worldPt.y);
+        }
+        tapRipples.push({ x: worldPt.x, y: worldPt.y, r: 8, alpha: 1.0 });
+      }
+    }
+
+    canvas.addEventListener("pointerup", handlePointerUp);
+    canvas.addEventListener("pointercancel", handlePointerUp);
+
+    // Desktop Mouse Wheel Zoom
+    canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.12 : 0.89;
+      camera.zoom = clamp(camera.zoom * factor, camera.minZoom, camera.maxZoom);
+      clampCamera();
+    }, { passive: false });
+
+    // Minimap Tap to Jump Camera
+    miniCanvas.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      const rect = miniCanvas.getBoundingClientRect();
+      const rx = (e.clientX - rect.left) / rect.width;
+      const ry = (e.clientY - rect.top) / rect.height;
+      camera.x = rx * WORLD_W;
+      camera.y = ry * WORLD_H;
+      clampCamera();
+    });
+
+    /*************************************************************************
+     * 10. UI COMMAND HANDLERS & MAIN 60 FPS LOOP
+     *************************************************************************/
+    function selectSquad(id, centerCam = false) {
+      selectedSquadId = id;
+      for (let i = 0; i < 8; i++) {
+        document.getElementById(`btnSq${i}`).classList.toggle("active-sq", id === i);
+      }
+      document.getElementById("btnSqAll").classList.toggle("active-all", id === -1);
+      syncOrderButtons();
+
+      if (centerCam && id >= 0 && squads[id]) {
+        const leader = squads[id].getLeader();
+        if (leader) {
+          camera.x = leader.x;
+          camera.y = leader.y;
+          clampCamera();
+        }
+      }
+    }
+
+    function focusSelectedSquad() {
+      if (selectedSquadId >= 0 && squads[selectedSquadId]) {
+        const l = squads[selectedSquadId].getLeader();
+        if (l) {
+          camera.x = l.x;
+          camera.y = l.y;
+          clampCamera();
+        }
+      }
+    }
+
+    function adjustZoom(mult) {
+      camera.zoom = clamp(camera.zoom * mult, camera.minZoom, camera.maxZoom);
+      clampCamera();
+    }
+
+    function issueOrder(ord) {
+      if (selectedSquadId === -1) {
+        for (let i = 0; i < 8; i++) squads[i].setOrder(ord);
+      } else if (squads[selectedSquadId]) {
+        squads[selectedSquadId].setOrder(ord);
+      }
+      syncOrderButtons();
+    }
+
+    function syncOrderButtons() {
+      const ref = selectedSquadId === -1 ? squads[0] : squads[selectedSquadId];
+      if (!ref) return;
+      document.getElementById("btnOrdAdvance").classList.toggle("active-ord", ref.order === "ADVANCE");
+      document.getElementById("btnOrdHold").classList.toggle("active-ord", ref.order === "HOLD");
+      document.getElementById("btnOrdFallback").classList.toggle("active-ord", ref.order === "FALLBACK");
+    }
+
+    function triggerSmokeOrder() {
+      if (selectedSquadId === -1) {
+        for (let i = 0; i < 8; i++) {
+          squads[i].smokeCooldown = 0;
+          squads[i].popSmoke();
+        }
+      } else if (squads[selectedSquadId]) {
+        squads[selectedSquadId].smokeCooldown = 0;
+        squads[selectedSquadId].popSmoke();
+      }
+    }
+
+    function spawnExtraTank() {
+      const lane = [1130, 1200, 1270][tanks.length % 3];
+      tanks.push(new HeavyTank(tanks.length, lane, WORLD_H - 90, lane));
+    }
+
+    function resetBattle() {
+      initBattle();
+    }
+
+    window.selectSquad = selectSquad;
+    window.focusSelectedSquad = focusSelectedSquad;
+    window.adjustZoom = adjustZoom;
+    window.issueOrder = issueOrder;
+    window.triggerSmokeOrder = triggerSmokeOrder;
+    window.spawnExtraTank = spawnExtraTank;
+    window.resetBattle = resetBattle;
+
+    let lastTime = performance.now();
+    let fpsSmooth = 60;
+    let hudAccumulator = 0;
+
+    function mainLoop(now) {
+      const rawDt = (now - lastTime) / 1000;
+      lastTime = now;
+      const dt = Math.min(rawDt, 0.05);
+      fpsSmooth = fpsSmooth * 0.9 + (1 / Math.max(rawDt, 0.001)) * 0.1;
+
+      // 1. Update 16 Squad Leaders
+      for (let i = 0; i < squads.length; i++) squads[i].updateMacroAI(dt);
+
+      // 2. Update Crawling Enemy Armor
+      for (let i = 0; i < tanks.length; i++) tanks[i].update(dt);
+
+      // 3. Update 160 Soldiers
+      for (let i = 0; i < soldiers.length; i++) soldiers[i].update(dt);
+
+      // 4. Step Projectiles with Wall Collision & Suppression
+      const activeBullets = stepProjectilesAndWallPhysics(dt);
+
+      // 5. Update FX, Smoke & Sectors
+      for (let i = effects.length - 1; i >= 0; i--) {
+        const fx = effects[i];
+        fx.r += fx.speed * dt;
+        fx.alpha -= 2.5 * dt;
+        if (fx.alpha <= 0 || fx.r >= fx.maxR) effects.splice(i, 1);
+      }
+
+      for (let i = smokeClouds.length - 1; i >= 0; i--) {
+        const sm = smokeClouds[i];
+        sm.life -= dt;
+        sm.r = Math.min(sm.maxR, sm.r + 22 * dt);
+        if (sm.life < 2.0) sm.alpha = (sm.life / 2.0) * 0.8;
+        if (sm.life <= 0) smokeClouds.splice(i, 1);
+      }
+
+      for (let i = tapRipples.length - 1; i >= 0; i--) {
+        const rp = tapRipples[i];
+        rp.r += 60 * dt;
+        rp.alpha -= 1.8 * dt;
+        if (rp.alpha <= 0) tapRipples.splice(i, 1);
+      }
+
+      updateStrategicSectors(dt);
+
+      // 6. Render Viewport & Minimap
+      renderTheatre();
+      renderMinimap();
+
+      // 7. Throttled DOM HUD Refresh (4 Hz)
+      hudAccumulator += dt;
+      if (hudAccumulator >= 0.25) {
+        hudAccumulator = 0;
+        let defAlive = 0, atkAlive = 0;
+        for (let i = 0; i < 8; i++) {
+          const c = squads[i].getAliveCount();
+          defAlive += c;
+          document.getElementById(`subSq${i}`).textContent = `${c}/10 | ${Math.round(squads[i].morale)}%`;
+        }
+        for (let i = 8; i < 16; i++) atkAlive += squads[i].getAliveCount();
+
+        const aliveTanks = tanks.filter(t => t.alive).length;
+        document.getElementById("uiDefCount").textContent = `GARRISON: ${defAlive} / 80`;
+        document.getElementById("uiAtkCount").textContent = `ASSAULT: ${atkAlive} / 80`;
+        document.getElementById("uiTankCount").textContent = `ARMOR: ${aliveTanks} TANKS`;
+
+        const fmtSec = (s) => s.owner === TEAM_DEF ? "GARRISON" : (s.owner === TEAM_ATK ? "OVERRUN" : "CONTESTED");
+        document.getElementById("uiSectorText").textContent =
+          `HILLTOP: ${fmtSec(sectors[0])} | GATE: ${fmtSec(sectors[1])} | STREETS: ${fmtSec(sectors[2])}`;
+
+        if (selectedSquadId === -1) {
+          document.getElementById("uiSquadDetails").innerHTML =
+            `<b>ALL 8 GARRISON SQUADS (80 MEN)</b><br/>Quick-tap map to deploy a theatre-wide battle line.`;
+        } else {
+          const sq = squads[selectedSquadId];
+          document.getElementById("uiSquadDetails").innerHTML =
+            `<b>${sq.name}</b> | Posture: <b>${sq.order}</b><br/>` +
+            `Morale: <b>${Math.round(sq.morale)}%</b> | Suppression: <b>${Math.round(sq.avgSup * 100)}%</b><br/>` +
+            `Fortification: <b>${sq.targetCluster ? sq.targetCluster.type.toUpperCase() : "OPEN GROUND"}</b>`;
+        }
+
+        document.getElementById("perfReadout").textContent =
+          `${Math.round(fpsSmooth)} FPS | ${defAlive + atkAlive} AI | ${activeBullets} PROJ`;
+      }
+
+      requestAnimationFrame(mainLoop);
+    }
+
+    initBattle();
+    requestAnimationFrame(mainLoop);
+  </script>
+</body>
+</html>
