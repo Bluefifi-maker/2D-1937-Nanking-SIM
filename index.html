@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Yuhuatai 1937: 120v120 Strategist Edition</title>
+<style>
+  :root{--bg:#1e2318;--panel:rgba(18,22,16,0.93);--brass:#8a7f5d;--cream:#eee8d5;--blue:#4da6ff;--teal:#48c9b0;--red:#ff5c4d;--amber:#f5b041}
+  *{box-sizing:border-box;user-select:none;-webkit-user-select:none;margin:0;padding:0}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:var(--cream);touch-action:none}
+  #viewportCanvas{position:fixed;top:0;left:0;width:100%;height:100%;display:block;background:#293021;z-index:1}
+  #topHud{position:fixed;top:8px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:center;gap:6px;z-index:10;pointer-events:none;flex-wrap:wrap}
+  .hud-card{background:var(--panel);border:1.5px solid var(--brass);border-radius:8px;padding:5px 10px;pointer-events:auto;box-shadow:0 4px 14px rgba(0,0,0,0.65);display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700}
+  .pill{padding:2px 7px;border-radius:4px;font-variant-numeric:tabular-nums}
+  .p-you{background:rgba(77,166,255,0.22);border:1px solid var(--blue);color:#a8d5ff}
+  .p-ally{background:rgba(72,201,176,0.22);border:1px solid var(--teal);color:#a3f0e0}
+  .p-wave{background:rgba(245,176,65,0.22);border:1px solid var(--amber);color:#ffe0a3}
+  .p-axis{background:rgba(255,92,77,0.22);border:1px solid var(--red);color:#ffb3ad}
+  #perfReadout{font-family:ui-monospace,monospace;font-size:11px;color:#7dffb3}
+  #minimapWrap{position:fixed;top:50px;left:10px;background:var(--panel);border:1.5px solid var(--brass);border-radius:8px;padding:6px;z-index:10;display:flex;flex-direction:column;align-items:center;gap:4px;box-shadow:0 6px 20px rgba(0,0,0,0.7)}
+  #minimapCanvas{width:120px;height:180px;border:1px solid #59533e;border-radius:4px;background:#1d2217;cursor:pointer;display:block}
+  .cam-controls{display:flex;gap:3px;width:100%}
+  .cam-btn{flex:1;background:#2e3428;color:var(--cream);border:1px solid #636b54;border-radius:4px;padding:5px 0;font-size:10px;font-weight:700;cursor:pointer}
+  #rightTelemetry{position:fixed;top:50px;right:10px;background:var(--panel);border:1px solid var(--brass);border-radius:8px;padding:8px 10px;font-size:10.5px;line-height:1.4;max-width:245px;z-index:9;pointer-events:none}
+  .legend-item{display:flex;align-items:center;gap:5px;margin-top:2px}
+  #commandDeck{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);background:var(--panel);border:2px solid var(--brass);border-radius:12px;padding:6px 8px;display:flex;flex-direction:column;gap:5px;z-index:10;box-shadow:0 8px 28px rgba(0,0,0,0.8);width:98vw;max-width:860px}
+  .deck-row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px}
+  .sq-btn{appearance:none;background:#2b3226;color:var(--cream);border:1.5px solid #58604b;border-radius:6px;padding:5px 7px;font-size:10.5px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;min-width:68px}
+  .sq-btn span.sub{font-size:8.5px;font-weight:500;color:#b2ab92;margin-top:1px}
+  .sq-btn.active-sq{border-color:var(--blue)!important;background:rgba(77,166,255,0.34)!important;color:#fff!important}
+  .sq-btn.active-all{border-color:#ffd700!important;background:rgba(255,215,0,0.3)!important;color:#fff3b0!important}
+  .sq-btn.active-copilot{border-color:var(--teal)!important;background:rgba(72,201,176,0.3)!important;color:#b8fff0!important}
+  .sq-btn.active-ord{border-color:var(--amber)!important;background:rgba(245,176,65,0.34)!important;color:#ffe7ba!important}
+  .sq-btn.util-btn{background:#3d3526;border-color:#917948}
+  .sep{width:1.5px;height:24px;background:var(--brass);opacity:0.5;margin:0 2px}
+  @media(max-width:860px){#rightTelemetry{display:none}.sq-btn{min-width:56px;padding:4px 5px;font-size:9.5px}}
+</style>
+<script>
+  window.onerror = function(msg, url, line) {
+    var el = document.getElementById("perfReadout");
+    if (el) { el.style.color = "#ff5c4d"; el.textContent = "ERR L" + line + ": " + msg; }
+  };
+</script>
+</head>
+<body>
+
+<div id="topHud">
+  <div class="hud-card">
+    <span class="pill p-you" id="uiYou">YOU (6 SQ): 60/60</span>
+    <span class="pill p-ally" id="uiAlly">CO-PILOT (6 SQ): 60/60</span>
+    <span class="pill p-wave" id="uiWave">REINF WAVE: 30s</span>
+    <span class="pill p-axis" id="uiAxis">ENEMY (12 SQ): 120/120</span>
+  </div>
+  <div class="hud-card" id="uiFlags" style="color:var(--amber)">FRONTLINE: F2 CROSSROADS (HOLD 30s)</div>
+  <div class="hud-card" id="perfReadout">BOOTING...</div>
+</div>
+
+<div id="minimapWrap">
+  <div style="font-size:9px;font-weight:700;color:var(--amber)">THEATRE MAP (TAP)</div>
+  <canvas id="minimapCanvas" width="120" height="180"></canvas>
+  <div class="cam-controls">
+    <button class="cam-btn" id="bZoomIn">+ ZOOM</button>
+    <button class="cam-btn" id="bZoomOut">- ZOOM</button>
+    <button class="cam-btn" id="bCenter">CENTER</button>
+  </div>
+</div>
+
+<div id="rightTelemetry">
+  <div style="font-weight:700;color:var(--amber);margin-bottom:2px">STRATEGIST &amp; SQUAD TELEMETRY</div>
+  <div id="uiSquadInfo">Tap a squad button or quick-tap ground.</div>
+  <hr style="border:0;border-top:1px solid #4c5240;margin:4px 0">
+  <div style="font-weight:700;font-size:9.5px;color:#b8b096">120 vs 120 INFANTRY ROLES</div>
+  <div class="legend-item"><b style="color:#ffd700">&#9733; SL</b>: Squad Leader + Rally</div>
+  <div class="legend-item"><b style="color:#ff8c1a">&#9576; HMG</b>: Tripod Heavy MG (640m)</div>
+  <div class="legend-item"><b style="color:#ffe082">&#9650; LMG</b>: Squad Light MG</div>
+  <div class="legend-item"><b style="color:#f1948a">&#10041; AP-GREN</b>: Frag Grenadier Breacher</div>
+  <div class="legend-item"><b style="color:#58d68d">+ MED</b>: Combat Medic (Revives)</div>
+  <div style="margin-top:4px;font-size:9.5px;color:#b5ad94">
+    <b>Co-Pilot:</b> Commands Squads 7–12 (<span style="color:#48c9b0">Teal</span>) with flanking &amp; smoke.<br>
+    <b>Flags:</b> Hold uncontested for <b>30s</b> to advance frontline!
+  </div>
+</div>
+
+<div id="commandDeck">
+  <div class="deck-row">
+    <button class="sq-btn" id="sq0">1 ABLE<span class="sub" id="ms0">10/10</span></button>
+    <button class="sq-btn" id="sq1">2 BAKER &#9576;<span class="sub" id="ms1">10/10</span></button>
+    <button class="sq-btn" id="sq2">3 CHARLIE &#9576;<span class="sub" id="ms2">10/10</span></button>
+    <button class="sq-btn" id="sq3">4 DOG<span class="sub" id="ms3">10/10</span></button>
+    <button class="sq-btn active-sq" id="sq4">5 EASY<span class="sub" id="ms4">10/10</span></button>
+    <button class="sq-btn" id="sq5">6 FOX<span class="sub" id="ms5">10/10</span></button>
+    <div class="sep"></div>
+    <button class="sq-btn active-copilot" id="bCopilot">CO-PILOT: ON<span class="sub" id="msCopilot">6 ALLY SQUADS</span></button>
+    <button class="sq-btn" id="sqAll">ALL 120<span class="sub">ARMY OVERRIDE</span></button>
+  </div>
+  <div class="deck-row">
+    <button class="sq-btn" id="ordAdv">ADVANCE<span class="sub">Push Waypoint</span></button>
+    <button class="sq-btn active-ord" id="ordHold">HOLD &amp; HMG &#9576;<span class="sub">Trench / Suppress</span></button>
+    <button class="sq-btn" id="ordFlag">ASSAULT FLAG<span class="sub">Push Active Flag</span></button>
+    <button class="sq-btn" id="ordRet">FALL BACK<span class="sub">Smoke + Retreat</span></button>
+    <div class="sep"></div>
+    <button class="sq-btn util-btn" id="bSmoke">POP SMOKE<span class="sub">Screen Advance</span></button>
+    <button class="sq-btn util-btn" id="bWave">CALL WAVE<span class="sub">Spawn Reinf</span></button>
+    <button class="sq-btn util-btn" id="bReset">RESET 120v120<span class="sub">Full Redeploy</span></button>
+  </div>
+</div>
+
+<canvas id="viewportCanvas" width="1024" height="768"></canvas>
+
+<script>
+(function() {
+  "use strict";
+  var perfEl = document.getElementById("perfReadout");
+  perfEl.textContent = "JS ACTIVE | 60 FPS";
+
+  var W = 2400, H = 3600;
+  var cv = document.getElementById("viewportCanvas"), ctx = cv.getContext("2d");
+  var mCv = document.getElementById("minimapCanvas"), mCtx = mCv.getContext("2d");
+  var sw = window.innerWidth || 1024, sh = window.innerHeight || 768;
+  var cam = { x: 1200, y: 2050, z: 0.56, minZ: 0.30, maxZ: 1.45 };
+
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function dSq(x1, y1, x2, y2) { return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1); }
+  function dist(x1, y1, x2, y2) { return Math.sqrt(dSq(x1, y1, x2, y2)); }
+  function sx(wx) { return (wx - cam.x) * cam.z + sw * 0.5; }
+  function sy(wy) { return (wy - cam.y) * cam.z + sh * 0.5; }
+  function toWorld(px, py) { return { x: (px - sw * 0.5) / cam.z + cam.x, y: (py - sh * 0.5) / cam.z + cam.y }; }
+
+  function clampCam() {
+    var hw = (sw * 0.5) / cam.z, hh = (sh * 0.5) / cam.z;
+    cam.x = clamp(cam.x, Math.min(hw, W * 0.5), Math.max(W - hw, W * 0.5));
+    cam.y = clamp(cam.y, Math.min(hh, H * 0.5), Math.max(H - hh, H * 0.5));
+  }
+
+  function resize() {
+    var w = Math.max(300, window.innerWidth || 1024), h = Math.max(300, window.innerHeight || 768);
+    if (cv.width !== w || cv.height !== h) { sw = w; sh = h; cv.width = w; cv.height = h; clampCam(); }
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  // 1. Influence Grid, Wall Geometry & 5 Sequential Sector Flags
+  var walls = [], roads = [], trenches = [], clusters = [], nodes = [], flags = [];
+  var G_COLS = 12, G_ROWS = 18, CW = W / G_COLS, CH = H / G_ROWS, infGrid = [];
+  var squads = [], soldiers = [], projectiles = [], smokes = [], effects = [], ripples = [];
+  var selSq = 4, copilotOn = true, waveTimer = 30.0;
+
+  var MAX_PROJ = 550;
+  for (var pI = 0; pI < MAX_PROJ; pI++) {
+    projectiles.push({ active: false, isGrenade: false, x: 0, y: 0, prevX: 0, prevY: 0, vx: 0, vy: 0, team: 0, dmg: 0, supPower: 0, life: 0 });
+  }
+
+  function initGrid() {
+    infGrid = [];
+    for (var i = 0; i < G_COLS * G_ROWS; i++) infGrid.push({ a: 0, e: 0, heat: 0 });
+  }
+
+  function updateGrid(dt) {
+    for (var i = 0; i < infGrid.length; i++) {
+      infGrid[i].a = 0; infGrid[i].e = 0; infGrid[i].heat *= (1 - 0.12 * dt);
+    }
+    for (var j = 0; j < soldiers.length; j++) {
+      var s = soldiers[j];
+      if (s.st !== 0) continue;
+      var gx = clamp(Math.floor(s.x / CW), 0, G_COLS - 1), gy = clamp(Math.floor(s.y / CH), 0, G_ROWS - 1);
+      var cell = infGrid[gy * G_COLS + gx], w = s.role === "HMG" ? 2.5 : (s.role === "MG" ? 1.6 : 1.0);
+      if (s.team === 0) cell.a += w; else cell.e += w;
+    }
+  }
+
+  function getDanger(wx, wy, team) {
+    var gx = clamp(Math.floor(wx / CW), 0, G_COLS - 1), gy = clamp(Math.floor(wy / CH), 0, G_ROWS - 1);
+    var c = infGrid[gy * G_COLS + gx];
+    return (team === 0 ? c.e : c.a) * 14 + c.heat * 25;
+  }
+
+  function addHeat(wx, wy, val) {
+    var gx = clamp(Math.floor(wx / CW), 0, G_COLS - 1), gy = clamp(Math.floor(wy / CH), 0, G_ROWS - 1);
+    infGrid[gy * G_COLS + gx].heat = clamp(infGrid[gy * G_COLS + gx].heat + val, 0, 25);
+  }
+
+  function segRectHit(x1, y1, x2, y2, rx, ry, rw, rh) {
+    var dx = x2 - x1, dy = y2 - y1, t0 = 0, t1 = 1;
+    var p = [-dx, dx, -dy, dy], q = [x1 - rx, rx + rw - x1, y1 - ry, ry + rh - y1];
+    for (var i = 0; i < 4; i++) {
+      if (p[i] === 0) { if (q[i] < 0) return null; }
+      else {
+        var t = q[i] / p[i];
+        if (p[i] < 0) { if (t > t1) return null; if (t > t0) t0 = t; }
+        else { if (t < t0) return null; if (t < t1) t1 = t; }
+      }
+    }
+    return t0 <= t1 ? t0 : null;
+  }
+
+  function traceWall(x1, y1, x2, y2) {
+    var bestT = 2, hx = x2, hy = y2;
+    var minX = Math.min(x1, x2), maxX = Math.max(x1, x2), minY = Math.min(y1, y2), maxY = Math.max(y1, y2);
+    for (var i = 0; i < walls.length; i++) {
+      var w = walls[i];
+      if (maxX < w.x || minX > w.x + w.w || maxY < w.y || minY > w.y + w.h) continue;
+      var t = segRectHit(x1, y1, x2, y2, w.x, w.y, w.w, w.h);
+      if (t !== null && t < bestT) { bestT = t; hx = x1 + (x2 - x1) * t; hy = y1 + (y2 - y1) * t; }
+    }
+    return bestT <= 1 ? { x: hx, y: hy } : null;
+  }
+
+  function pointToSegmentDistSq(px, py, x1, y1, x2, y2) {
+    var l2 = dSq(x1, y1, x2, y2);
+    if (l2 === 0) return dSq(px, py, x1, y1);
+    var t = clamp(((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2, 0, 1);
+    return dSq(px, py, x1 + t * (x2 - x1), y1 + t * (y2 - y1));
+  }
+
+  function buildMap() {
+    walls = []; roads = []; trenches = []; clusters = []; nodes = [];
+    initGrid();
+    flags = [
+      { id: 0, name: "F1 SOUTH OUTSKIRTS",  x: 1200, y: 2980, r: 140, own: 1, timer: -30.0, state: "AXIS" },
+      { id: 1, name: "F2 URBAN CROSSROADS", x: 1200, y: 2375, r: 140, own: 1, timer: -30.0, state: "AXIS" },
+      { id: 2, name: "F3 GATE PLAZA",       x: 1200, y: 1775, r: 140, own: 0, timer: 30.0,  state: "ALLIES" },
+      { id: 3, name: "F4 ZHONGHUA GATE",    x: 1200, y: 1360, r: 140, own: 0, timer: 30.0,  state: "ALLIES" },
+      { id: 4, name: "F5 YUHUATAI CITADEL", x: 1200, y: 520,  r: 150, own: 0, timer: 30.0,  state: "ALLIES" }
+    ];
+    roads = [
+      { x: 1030, y: 460, w: 340, h: 3080 }, { x: 420, y: 1450, w: 140, h: 2050 },
+      { x: 1840, y: 1450, w: 140, h: 2050 }, { x: 180, y: 1720, w: 2040, h: 110 },
+      { x: 180, y: 2320, w: 2040, h: 110 }, { x: 180, y: 2920, w: 2040, h: 110 }
+    ];
+    [640, 840, 1040, 1220].forEach(function(ty, idx) {
+      var pts = [];
+      for (var x = 260; x <= 2140; x += 80) pts.push({ x: x, y: ty + Math.sin(x * 0.013 + idx) * 22 });
+      trenches.push(pts);
+    });
+    [
+      { x: 660, y: 380, w: 92, h: 42, t: 0 }, { x: 1154, y: 330, w: 92, h: 42, t: 0 },
+      { x: 1648, y: 380, w: 92, h: 42, t: 0 }, { x: 460, y: 720, w: 86, h: 36, t: 0 },
+      { x: 880, y: 740, w: 86, h: 36, t: 0 }, { x: 1434, y: 740, w: 86, h: 36, t: 0 },
+      { x: 1854, y: 720, w: 86, h: 36, t: 0 },
+      { x: 0, y: 1450, w: 430, h: 92, t: 1 }, { x: 550, y: 1450, w: 490, h: 92, t: 1 },
+      { x: 1360, y: 1450, w: 490, h: 92, t: 1 }, { x: 1970, y: 1450, w: 430, h: 92, t: 1 }
+    ].forEach(function(b) { walls.push(b); });
+
+    [1860, 2460].forEach(function(ry, rIdx) {
+      [190, 590, 815, 1400, 1615, 2010].forEach(function(cx, cIdx) {
+        walls.push({ x: cx, y: ry, w: 190, h: 185, t: 2, s: (rIdx + cIdx) % 2 });
+        walls.push({ x: cx, y: ry + 235, w: 190, h: 185, t: 2, s: (rIdx + cIdx + 1) % 2 });
+      });
+    });
+
+    var cList = [
+      [705,455,0.76],[1200,415,0.78],[1695,455,0.76],[500,645,0.68],[860,645,0.68],[1200,640,0.70],[1540,645,0.68],[1900,645,0.68],
+      [500,845,0.66],[920,845,0.66],[1200,840,0.66],[1480,845,0.66],[1900,845,0.66],[600,1045,0.64],[960,1045,0.64],[1200,1045,0.64],[1440,1045,0.64],[1800,1045,0.64],
+      [490,1365,0.70],[820,1365,0.70],[1050,1365,0.72],[1200,1355,0.72],[1350,1365,0.72],[1580,1365,0.70],[1910,1365,0.70],
+      [320,1620,0.58],[490,1620,0.60],[800,1620,0.58],[1040,1620,0.60],[1200,1620,0.62],[1360,1620,0.60],[1600,1620,0.58],[1910,1620,0.60],[2080,1620,0.58],
+      [490,1775,0.58],[800,1775,0.58],[1040,1775,0.60],[1200,1775,0.62],[1360,1775,0.60],[1600,1775,0.58],[1910,1775,0.58],
+      [490,2080,0.56],[980,2080,0.58],[1420,2080,0.58],[1910,2080,0.56],
+      [320,2375,0.58],[490,2375,0.58],[800,2375,0.60],[1040,2375,0.60],[1200,2375,0.62],[1360,2375,0.60],[1600,2375,0.60],[1910,2375,0.58],[2080,2375,0.58],
+      [490,2680,0.56],[980,2680,0.58],[1420,2680,0.58],[1910,2680,0.56],
+      [340,2975,0.52],[490,2975,0.54],[800,2975,0.54],[1040,2975,0.56],[1200,2975,0.58],[1360,2975,0.56],[1600,2975,0.54],[1910,2975,0.54],[2060,2975,0.52],
+      [490,3260,0.48],[920,3260,0.48],[1200,3260,0.48],[1480,3260,0.48],[1910,3260,0.48]
+    ];
+    cList.forEach(function(c, idx) {
+      var cl = { id: idx, x: c[0], y: c[1], bonus: c[2], nodes: [] };
+      for (var i = 0; i < 10; i++) {
+        var a = (i / 10) * Math.PI * 2, r = 24 + (i % 2) * 8;
+        var nd = { x: c[0] + Math.cos(a) * r, y: c[1] + Math.sin(a) * r * 0.78, bonus: c[2], occ: null };
+        cl.nodes.push(nd); nodes.push(nd);
+      }
+      clusters.push(cl);
+    });
+  }
+
+  function getAlliedTargetFlag() {
+    for (var i = flags.length - 1; i >= 0; i--) { if (flags[i].own !== 0) return flags[i]; }
+    return flags[0];
+  }
+  function getAxisTargetFlag() {
+    for (var i = 0; i < flags.length; i++) { if (flags[i].own !== 1) return flags[i]; }
+    return flags[flags.length - 1];
+  }
+
+  function spawnFX(x, y, maxR, color, speed) {
+    if (effects.length < 130) effects.push({ x: x, y: y, r: 2, maxR: maxR || 16, alpha: 1.0, color: color || "#ffaa33", speed: speed || 55 });
+  }
+  function spawnSmoke(x, y) {
+    if (smokes.length < 24) smokes.push({ x: x + rand(-10, 10), y: y + rand(-10, 10), r: 16, maxR: 78, life: 12.0 });
+  }
+
+  function clearLOS(x1, y1, x2, y2) {
+    for (var i = 0; i < smokes.length; i++) {
+      var sm = smokes[i];
+      if (pointToSegmentDistSq(sm.x, sm.y, x1, y1, x2, y2) < sm.r * sm.r) return false;
+    }
+    return traceWall(x1, y1, x2, y2) === null;
+  }
+
+  function claimCover(sq, wx, wy) {
+    sq.wx = clamp(wx, 55, W - 55); sq.wy = clamp(wy, 75, H - 75);
+    sq.members.forEach(function(m) { if (m.node) { m.node.occ = null; m.node = null; } });
+    var best = null, bestScore = -99999;
+    for (var i = 0; i < clusters.length; i++) {
+      var c = clusters[i], d = dist(sq.wx, sq.wy, c.x, c.y);
+      if (d > 220) continue;
+      var free = 0;
+      for (var k = 0; k < c.nodes.length; k++) if (!c.nodes[k].occ) free++;
+      if (free < 3) continue;
+      var sc = (220 - d) + c.bonus * 75 - getDanger(c.x, c.y, sq.team) * 0.55;
+      if (sc > bestScore) { bestScore = sc; best = c; }
+    }
+    sq.cluster = best;
+    if (!best) return;
+    sq.wx = best.x; sq.wy = best.y;
+    sq.members.forEach(function(m) {
+      if (m.st !== 0) return;
+      for (var j = 0; j < best.nodes.length; j++) {
+        if (!best.nodes[j].occ) { best.nodes[j].occ = m; m.node = best.nodes[j]; break; }
+      }
+    });
+  }
+
+  function createSquad(id, name, team, isCopilot, x, y, isHmg, ord, lane) {
+    var sq = {
+      id: id, name: name, team: team, isCopilot: isCopilot, isHmg: isHmg,
+      order: ord, lane: lane, morale: 100, supAvg: 0,
+      wx: x, wy: y, ang: team === 0 ? 1.57 : -1.57,
+      cluster: null, members: [], think: rand(0.1, 0.9), smkCd: 0
+    };
+    var roles = isHmg ? ["SL","HMG","HMG","MG","MED","AP","R","R","R","R"] : ["SL","MG","AP","AP","MED","R","R","R","R","R"];
+    for (var i = 0; i < 10; i++) {
+      var s = {
+        squad: sq, team: team, role: roles[i], slot: i,
+        x: x + (i - 4.5) * 12, y: y + (i % 2) * 10,
+        ang: sq.ang, st: 0, bleed: 16, sup: 0, node: null, inCov: false,
+        tripod: false, statT: 0, cd: rand(0.1, 0.8), grenCd: rand(2, 6),
+        burst: 0, tgt: null, recoil: 0, flash: 0
+      };
+      sq.members.push(s); soldiers.push(s);
+    }
+    claimCover(sq, x, y);
+    squads.push(sq);
+  }
+
+  function initBattle() {
+    squads = []; soldiers = []; smokes = []; effects = []; ripples = [];
+    for (var i = 0; i < MAX_PROJ; i++) projectiles[i].active = false;
+    waveTimer = 30.0;
+    buildMap();
+
+    // 6 Player Squads (0..5: Blue)
+    createSquad(0, "1 ABLE",    0, false, 705,  455,  false, "HOLD", -1);
+    createSquad(1, "2 BAKER",   0, false, 920,  845,  true,  "HOLD",  0);
+    createSquad(2, "3 CHARLIE", 0, false, 1200, 1355, true,  "HOLD",  0);
+    createSquad(3, "4 DOG",     0, false, 490,  1775, false, "HOLD", -1);
+    createSquad(4, "5 EASY",    0, false, 1200, 1775, false, "HOLD",  0);
+    createSquad(5, "6 FOX",     0, false, 1910, 1775, false, "HOLD",  1);
+
+    // 6 Allied Co-Pilot AI Squads (6..11: Teal)
+    createSquad(6,  "7 GEORGE", 0, true, 1695, 455,  false, "HOLD",     1);
+    createSquad(7,  "8 HOW",    0, true, 1480, 845,  true,  "HOLD",     0);
+    createSquad(8,  "9 ITEM",   0, true, 490,  1365, false, "ADVANCE", -1);
+    createSquad(9,  "10 JIG",   0, true, 1910, 1365, false, "ADVANCE",  1);
+    createSquad(10, "11 KING",  0, true, 800,  1620, true,  "HOLD",    -1);
+    createSquad(11, "12 LOVE",  0, true, 1600, 1620, false, "ADVANCE",  1);
+
+    // 12 Enemy Strategist Squads (12..23: Red)
+    var axCfg = [
+      [490,2375,false,-1],[800,2375,true,0],[1200,2375,false,0],[1600,2375,true,0],[1910,2375,false,1],[490,2975,false,-1],
+      [920,2975,true,0],[1200,2975,false,0],[1480,2975,true,0],[1910,2975,false,1],[800,3260,false,-1],[1600,3260,false,1]
+    ];
+    axCfg.forEach(function(c, idx) {
+      createSquad(idx + 12, "AXIS " + (idx + 1), 1, false, c[0], c[1], c[2], "ADVANCE", c[3]);
+    });
+
+    cam.x = 1200; cam.y = 2050; cam.z = 0.56; clampCam();
+    selectSquad(4, false);
+  }
+
+  function triggerReinforcementWave() {
+    var reinf = 0;
+    squads.forEach(function(sq) {
+      var spawnY = sq.team === 0 ? 370 : 3440;
+      var spawnX = 1200 + sq.lane * 520 + rand(-80, 80);
+      var aliveL = sq.members.find(function(m) { return m.st === 0; });
+      sq.members.forEach(function(m, idx) {
+        if (m.st === 2) {
+          m.st = 0; m.bleed = 16; m.sup = 0;
+          m.x = spawnX + (idx - 4.5) * 10; m.y = spawnY + (idx % 2) * 8;
+          reinf++;
+        }
+      });
+      if (!aliveL) { sq.morale = 100; claimCover(sq, spawnX, sq.team === 0 ? 640 : 2975); }
+    });
+    if (reinf > 0) {
+      ripples.push({ x: 1200, y: 380, r: 15, a: 1.0 });
+      ripples.push({ x: 1200, y: 3420, r: 15, a: 1.0 });
+    }
+  }
+
+  function setSquadOrder(sq, ord) {
+    sq.order = ord;
+    var l = sq.members.find(function(m) { return m.st === 0; });
+    if (!l) return;
+    if (ord === "FALLBACK") {
+      var ry = sq.team === 0 ? Math.max(415, l.y - 280) : Math.min(3380, l.y + 280);
+      claimCover(sq, l.x, ry);
+      if (sq.smkCd <= 0) { sq.smkCd = 12; spawnSmoke(l.x + Math.cos(sq.ang) * 65, l.y + Math.sin(sq.ang) * 65); }
+    } else if (ord === "HOLD") {
+      claimCover(sq, l.x, l.y);
+    } else if (ord === "ASSAULT_FLAG") {
+      var flg = sq.team === 0 ? getAlliedTargetFlag() : getAxisTargetFlag();
+      claimCover(sq, flg.x + sq.lane * 340, flg.y);
+    }
+  }
+
+  function fireBullet(x, y, ang, spd, team, dmg, sup, isGren, life) {
+    for (var i = 0; i < MAX_PROJ; i++) {
+      var p = projectiles[i];
+      if (!p.active) {
+        p.active = true; p.isGrenade = isGren;
+        p.x = x; p.y = y; p.prevX = x; p.prevY = y;
+        p.vx = Math.cos(ang) * spd; p.vy = Math.sin(ang) * spd;
+        p.team = team; p.dmg = dmg; p.supPower = sup; p.life = life;
+        return;
+      }
+    }
+  }
+
+  function updateSim(dt) {
+    updateGrid(dt);
+    waveTimer -= dt;
+    if (waveTimer <= 0) { waveTimer = 30.0; triggerReinforcementWave(); }
+
+    // 1. Update 24 Squads & Militarist Strategist AI
+    for (var i = 0; i < squads.length; i++) {
+      var sq = squads[i];
+      if (sq.smkCd > 0) sq.smkCd -= dt;
+      var lead = null, supSum = 0, alv = 0;
+      for (var mIdx = 0; mIdx < sq.members.length; mIdx++) {
+        var m = sq.members[mIdx];
+        if (m.st === 0) { if (!lead) { lead = m; m.role = "SL"; } supSum += m.sup; alv++; }
+      }
+      if (!lead) continue;
+
+      sq.supAvg = alv > 0 ? supSum / alv : 0;
+      sq.morale = clamp(sq.morale + (sq.supAvg < 0.35 ? 3.5 : (sq.supAvg > 0.65 ? -6.5 : 0)) * dt, 0, 100);
+      if (sq.morale < 22 && sq.order !== "FALLBACK") setSquadOrder(sq, "FALLBACK");
+      else if (sq.morale > 68 && sq.order === "FALLBACK" && (sq.team === 1 || (sq.isCopilot && copilotOn))) sq.order = "ADVANCE";
+
+      sq.think -= dt;
+      if (sq.think > 0) continue;
+      sq.think = 1.05;
+
+      var tx = 1200, ty = sq.team === 0 ? 2500 : 900, minDSq = Infinity;
+      for (var j = 0; j < squads.length; j++) {
+        var oSq = squads[j];
+        if (oSq.team !== sq.team) {
+          var ol = oSq.members.find(function(k) { return k.st === 0; });
+          if (ol) {
+            var d = dSq(lead.x, lead.y, ol.x, ol.y);
+            if (d < minDSq) { minDSq = d; tx = ol.x; ty = ol.y; }
+          }
+        }
+      }
+      sq.ang = Math.atan2(ty - lead.y, tx - lead.x);
+
+      if (sq.team === 1 || (sq.isCopilot && copilotOn)) {
+        if (sq.order === "FALLBACK") continue;
+        if (sq.supAvg > 0.52 && sq.smkCd <= 0) {
+          sq.smkCd = 13; spawnSmoke(lead.x + Math.cos(sq.ang) * 70, lead.y + Math.sin(sq.ang) * 70);
+        }
+        var flg = sq.team === 0 ? getAlliedTargetFlag() : getAxisTargetFlag();
+        var dFlag = dist(lead.x, lead.y, flg.x, flg.y);
+        if (sq.isHmg && (minDSq < 560 * 560 || dFlag < 320)) { sq.order = "HOLD"; continue; }
+
+        var lanes = [490, 920, 1200, 1480, 1910], prefX = 1200 + sq.lane * 710, bestX = prefX, minCost = Infinity;
+        for (var c = 0; c < lanes.length; c++) {
+          var lx = lanes[c], syStep = lead.y + (sq.team === 0 ? 180 : -180);
+          var cost = getDanger(lx, syStep, sq.team) * 2.0 + Math.abs(lx - prefX) * 0.32 + (dFlag < 440 ? Math.abs(lx - flg.x) * 0.65 : 0);
+          if (cost < minCost) { minCost = cost; bestX = lx; }
+        }
+        sq.order = "ADVANCE";
+        if (dFlag < 260) claimCover(sq, flg.x + rand(-80, 80), flg.y + rand(-65, 65));
+        else claimCover(sq, bestX, clamp(lead.y + (flg.y > lead.y ? 195 : -195), 380, H - 180));
+      }
+    }
+
+    // 2. Update 240 Soldiers
+    for (var sIdx = 0; sIdx < soldiers.length; sIdx++) {
+      var s = soldiers[sIdx];
+      if (s.st === 2) continue;
+      if (s.recoil > 0) s.recoil = Math.max(0, s.recoil - 16 * dt);
+      if (s.flash > 0) s.flash -= dt;
+
+      if (s.st === 1) {
+        s.bleed -= dt;
+        if (s.bleed <= 0) {
+          s.st = 2; if (s.node) { s.node.occ = null; s.node = null; }
+          s.squad.morale = clamp(s.squad.morale - 7, 0, 100);
+        }
+        continue;
+      }
+
+      s.sup = clamp(s.sup - (s.inCov ? 0.25 : 0.12) * dt, 0, 1);
+
+      if (s.role === "MED") {
+        var pat = null, minPD = Infinity;
+        for (var pI = 0; pI < s.squad.members.length; pI++) {
+          var m2 = s.squad.members[pI];
+          if (m2.st === 1) {
+            var pd = dSq(s.x, s.y, m2.x, m2.y);
+            if (pd < minPD) { minPD = pd; pat = m2; }
+          }
+        }
+        if (pat) {
+          var distP = Math.sqrt(minPD);
+          if (distP > 14) {
+            var mx = ((pat.x - s.x) / distP) * 78 * dt, my = ((pat.y - s.y) / distP) * 78 * dt;
+            if (!traceWall(s.x, s.y, s.x + mx, s.y + my)) { s.x += mx; s.y += my; }
+          } else {
+            pat.st = 0; pat.bleed = 16; pat.sup = 0.2;
+            s.squad.morale = clamp(s.squad.morale + 5, 0, 100);
+            spawnFX(pat.x, pat.y, 12, "#58d68d", 40);
+          }
+          continue;
+        }
+      }
+
+      var destX = s.node ? s.node.x : s.squad.wx + (s.slot - 4.5) * 15;
+      var destY = s.node ? s.node.y : s.squad.wy + (s.slot % 2) * 12;
+      var dx = destX - s.x, dy = destY - s.y, distG = Math.sqrt(dx * dx + dy * dy);
+      s.inCov = Boolean(s.node && distG < 12);
+
+      var pinned = s.sup > 0.78 && s.squad.order !== "FALLBACK";
+      var spd = s.role === "HMG" ? 38 : (s.role === "MG" ? 50 : 65);
+      if (s.squad.order === "FALLBACK") spd *= 1.18;
+      if (s.sup > 0.35) spd *= (1 - s.sup * 0.45);
+
+      if (distG > 5 && !(pinned && s.inCov)) {
+        s.statT = 0; s.tripod = false;
+        var stepX = (dx / distG) * spd * dt, stepY = (dy / distG) * spd * dt;
+        if (!traceWall(s.x, s.y, s.x + stepX, s.y)) s.x = clamp(s.x + stepX, 25, W - 25);
+        if (!traceWall(s.x, s.y, s.x, s.y + stepY)) s.y = clamp(s.y + stepY, 35, H - 35);
+      } else {
+        s.statT += dt;
+        if (s.role === "HMG" && s.statT >= 1.2) s.tripod = true;
+      }
+
+      if (s.sup > 0.84 || (s.role === "HMG" && !s.tripod)) continue;
+      s.cd -= dt;
+      if (s.role === "AP") s.grenCd -= dt;
+      if (s.cd > 0) continue;
+
+      var maxR = s.role === "HMG" ? 640 : (s.role === "MG" ? 470 : 390);
+      if (!s.tgt || s.tgt.st !== 0 || Math.random() < 0.25) {
+        s.tgt = null; var bestSc = maxR * maxR;
+        for (var eI = 0; eI < soldiers.length; eI++) {
+          var en = soldiers[eI];
+          if (en.team !== s.team && en.st === 0) {
+            var ed = dSq(s.x, s.y, en.x, en.y);
+            if (ed < bestSc && clearLOS(s.x, s.y, en.x, en.y)) { bestSc = ed; s.tgt = en; }
+          }
+        }
+      }
+      if (!s.tgt) { s.cd = 0.35; continue; }
+
+      var aim = Math.atan2(s.tgt.y - s.y, s.tgt.x - s.x);
+      s.ang = aim;
+
+      if (s.role === "AP" && s.grenCd <= 0 && dSq(s.x, s.y, s.tgt.x, s.tgt.y) < 210 * 210) {
+        fireBullet(s.x, s.y, aim + rand(-0.04, 0.04), 290, s.team, 65, 0.75, true, 0.75);
+        s.grenCd = rand(5.5, 8.5); s.cd = 0.9;
+        continue;
+      }
+
+      var sway = (s.role === "HMG" ? 0.03 : 0.045) + s.sup * 0.15;
+      var shotA = aim + rand(-sway, sway);
+      s.recoil = 3.5; s.flash = 0.06;
+
+      if (s.role === "HMG") {
+        fireBullet(s.x, s.y, shotA, 610, s.team, 26, 0.36, false, 1.08);
+        if (s.burst > 0) { s.burst--; s.cd = 0.075; } else { s.burst = 7; s.cd = rand(0.75, 1.25); }
+      } else if (s.role === "MG") {
+        fireBullet(s.x, s.y, shotA, 550, s.team, 21, 0.25, false, 0.92);
+        if (s.burst > 0) { s.burst--; s.cd = 0.095; } else { s.burst = 4; s.cd = rand(1.1, 1.6); }
+      } else {
+        fireBullet(s.x, s.y, shotA, 550, s.team, 32, 0.14, false, 0.80);
+        s.cd = rand(0.9, 1.55);
+      }
+    }
+
+    // 3. Step Projectiles & Wall Collisions
+    var activeProj = 0;
+    for (var bI = 0; bI < MAX_PROJ; bI++) {
+      var p = projectiles[bI];
+      if (!p.active) continue;
+      p.prevX = p.x; p.prevY = p.y;
+      var nx = p.x + p.vx * dt, ny = p.y + p.vy * dt;
+      p.life -= dt;
+
+      if (p.life <= 0 || nx < 0 || nx > W || ny < 0 || ny > H) {
+        if (p.isGrenade) {
+          spawnFX(p.x, p.y, 32, "#ff661a", 75);
+          for (var gI = 0; gI < soldiers.length; gI++) {
+            var gs = soldiers[gI];
+            if (gs.st === 0 && dSq(p.x, p.y, gs.x, gs.y) < 38 * 38) {
+              gs.sup = clamp(gs.sup + 0.75, 0, 1);
+              if (Math.random() < 0.55) gs.st = 1;
+            }
+          }
+        }
+        p.active = false; continue;
+      }
+
+      var wh = traceWall(p.prevX, p.prevY, nx, ny);
+      if (wh) {
+        spawnFX(wh.x, wh.y, p.isGrenade ? 26 : 5, p.isGrenade ? "#ff661a" : "#d5cbb8", 50);
+        p.active = false; continue;
+      }
+
+      p.x = nx; p.y = ny; activeProj++;
+
+      for (var j = 0; j < soldiers.length; j++) {
+        var sol = soldiers[j];
+        if (sol.team === p.team || sol.st !== 0) continue;
+        if (Math.abs(sol.x - p.x) > 32 || Math.abs(sol.y - p.y) > 32) continue;
+
+        var sdSq = pointToSegmentDistSq(sol.x, sol.y, p.prevX, p.prevY, p.x, p.y);
+        if (sdSq < 28 * 28) sol.sup = clamp(sol.sup + p.supPower * (sol.inCov ? 0.48 : 1.0), 0, 1);
+        if (sdSq < (p.isGrenade ? 22 * 22 : 7.5 * 7.5)) {
+          if (p.isGrenade) spawnFX(p.x, p.y, 30, "#ff661a", 70);
+          else spawnFX(p.x, p.y, 6, "#c0392b", 45);
+
+          var hillAdv = sol.y < 1100 ? 0.14 : 0;
+          var save = sol.inCov && sol.node ? sol.node.bonus : 0.06;
+          if (Math.random() > clamp(save + hillAdv, 0, 0.85) || p.isGrenade) {
+            sol.st = Math.random() < 0.70 ? 1 : 2;
+            sol.bleed = 16.0;
+            sol.squad.morale = clamp(sol.squad.morale - (sol.role === "SL" ? 14 : 6), 0, 100);
+            addHeat(sol.x, sol.y, 1.5);
+          }
+          p.active = false; break;
+        }
+      }
+    }
+
+    // 4. Update 5 Sequential Flags (30-Second Uncontested Capture Rule)
+    for (var fI = 0; fI < flags.length; fI++) {
+      var fl = flags[fI], cAllies = 0, cAxis = 0, rSq = fl.r * fl.r;
+      for (var k = 0; k < soldiers.length; k++) {
+        var fs = soldiers[k];
+        if (fs.st === 0 && dSq(fs.x, fs.y, fl.x, fl.y) <= rSq) {
+          if (fs.team === 0) cAllies++; else cAxis++;
+        }
+      }
+      if (cAllies > 0 && cAxis === 0) {
+        fl.timer = clamp(fl.timer + dt, -30.0, 30.0);
+        fl.state = fl.own === 0 ? "ALLIES" : "CAPTURING (ALLIES)";
+        if (fl.timer >= 30.0) { fl.own = 0; fl.state = "ALLIES"; }
+      } else if (cAxis > 0 && cAllies === 0) {
+        fl.timer = clamp(fl.timer - dt, -30.0, 30.0);
+        fl.state = fl.own === 1 ? "AXIS" : "CAPTURING (AXIS)";
+        if (fl.timer <= -30.0) { fl.own = 1; fl.state = "AXIS"; }
+      } else if (cAllies > 0 && cAxis > 0) {
+        fl.state = "CONTESTED";
+      } else {
+        fl.state = fl.own === 0 ? "ALLIES" : "AXIS";
+      }
+    }
+
+    for (var eI2 = effects.length - 1; eI2 >= 0; eI2--) {
+      var ef = effects[eI2]; ef.r += ef.speed * dt; ef.alpha -= 2.6 * dt;
+      if (ef.alpha <= 0 || ef.r >= ef.maxR) effects.splice(eI2, 1);
+    }
+    for (var smI = smokes.length - 1; smI >= 0; smI--) {
+      var sm = smokes[smI]; sm.life -= dt; sm.r = Math.min(sm.maxR, sm.r + 22 * dt);
+      if (sm.life <= 0) smokes.splice(smI, 1);
+    }
+    for (var rpI = ripples.length - 1; rpI >= 0; rpI--) {
+      var rp = ripples[rpI]; rp.r += 65 * dt; rp.a -= 1.8 * dt;
+      if (rp.a <= 0) ripples.splice(rpI, 1);
+    }
+    return activeProj;
+  }
+
+  // 5. Screen-Space Renderer with Procedural Soldier Animations
+  function renderScene() {
+    resize();
+    var z = cam.z;
+    ctx.fillStyle = "#2b3322";
+    ctx.fillRect(0, 0, sw, sh);
+
+    // Yuhuatai Hill Contours & Trenches
+    var hx = sx(1200), hy = sy(460);
+    if (hy > -700 * z && hy < sh + 700 * z) {
+      [780, 600, 430, 260].forEach(function(r, idx) {
+        ctx.fillStyle = ["#323b26","#39442c","#414d33","#4a583a"][idx];
+        ctx.beginPath(); ctx.arc(hx, hy, r * z, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "rgba(215,205,160,0.18)"; ctx.lineWidth = 2; ctx.stroke();
+      });
+      trenches.forEach(function(pts) {
+        ctx.beginPath();
+        pts.forEach(function(p, i) { if (i === 0) ctx.moveTo(sx(p.x), sy(p.y)); else ctx.lineTo(sx(p.x), sy(p.y)); });
+        ctx.strokeStyle = "#1c1913"; ctx.lineWidth = Math.max(3, 12 * z); ctx.stroke();
+        ctx.strokeStyle = "#6e6246"; ctx.lineWidth = Math.max(1, 3 * z); ctx.stroke();
+      });
+    }
+
+    // Roads
+    ctx.fillStyle = "#3a3935";
+    for (var rI = 0; rI < roads.length; rI++) {
+      var rd = roads[rI]; ctx.fillRect(sx(rd.x), sy(rd.y), rd.w * z, rd.h * z);
+    }
+
+    // Cover Clusters & Nodes
+    for (var cI = 0; cI < clusters.length; cI++) {
+      var cl = clusters[cI], cx = sx(cl.x), cy = sy(cl.y);
+      if (cx < -40 || cx > sw + 40 || cy < -40 || cy > sh + 40) continue;
+      ctx.fillStyle = "rgba(92, 80, 58, 0.58)";
+      ctx.beginPath(); ctx.arc(cx, cy, Math.max(6, 24 * z), 0, Math.PI * 2); ctx.fill();
+    }
+    var nSz = Math.max(2.5, 4.5 * z);
+    for (var nI = 0; nI < nodes.length; nI++) {
+      var nd = nodes[nI], nx = sx(nd.x), ny = sy(nd.y);
+      if (nx < 0 || nx > sw || ny < 0 || ny > sh) continue;
+      ctx.fillStyle = nd.occ ? "#f5b041" : "rgba(210, 200, 165, 0.28)";
+      ctx.fillRect(nx - nSz * 0.5, ny - nSz * 0.5, nSz, nSz);
+    }
+
+    // Solid Obstacles (Bunkers, Gate Walls, Urban Buildings)
+    for (var oI = 0; oI < walls.length; oI++) {
+      var ob = walls[oI], ox = sx(ob.x), oy = sy(ob.y), ow = ob.w * z, oh = ob.h * z;
+      if (ox + ow < 0 || ox > sw || oy + oh < 0 || oy > sh) continue;
+      ctx.fillStyle = ob.t === 0 ? "#5a5d54" : (ob.t === 1 ? "#5c493e" : (ob.s === 0 ? "#4a433c" : "#524840"));
+      ctx.fillRect(ox, oy, ow, oh);
+      ctx.strokeStyle = "#211d1a"; ctx.lineWidth = 2; ctx.strokeRect(ox, oy, ow, oh);
+      if (ob.t === 2 && ow > 14 && oh > 14) {
+        ctx.fillStyle = "#5e5349"; ctx.fillRect(ox + 5, oy + 5, ow - 10, oh - 10);
+      }
+    }
+
+    // 5 Sequential Flags + 30s Progress Ring
+    for (var fI = 0; fI < flags.length; fI++) {
+      var fl = flags[fI], fx = sx(fl.x), fy = sy(fl.y), fr = fl.r * z;
+      if (fy + fr < 0 || fy - fr > sh) continue;
+      ctx.strokeStyle = fl.own === 0 ? "rgba(77,166,255,0.65)" : "rgba(255,92,77,0.65)";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(fx, fy, fr, 0, Math.PI * 2); ctx.stroke();
+
+      // 30-Second Capture Progress Arc
+      var prog = Math.abs(fl.timer) / 30.0;
+      ctx.strokeStyle = fl.timer >= 0 ? "#4da6ff" : "#ff5c4d";
+      ctx.lineWidth = 4.5;
+      ctx.beginPath(); ctx.arc(fx, fy, Math.max(12, 22 * z), -1.57, -1.57 + Math.PI * 2 * prog); ctx.stroke();
+
+      ctx.fillStyle = "rgba(16,20,14,0.88)";
+      ctx.fillRect(fx - 58, fy - 8, 116, 16);
+      ctx.fillStyle = "#f5b041"; ctx.font = "bold 9.5px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(fl.name + " [" + Math.round(Math.abs(fl.timer)) + "s]", fx, fy);
+    }
+
+    // Selected Squad Waypoint Vectors
+    for (var sqI = 0; sqI < 12; sqI++) {
+      if (selSq === -1 || selSq === sqI) {
+        var sq = squads[sqI], lead = sq.members.find(function(m) { return m.st === 0; });
+        if (lead) {
+          ctx.strokeStyle = selSq === -1 ? "rgba(255,215,0,0.6)" : "rgba(77,166,255,0.85)";
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(sx(lead.x), sy(lead.y)); ctx.lineTo(sx(sq.wx), sy(sq.wy)); ctx.stroke();
+          ctx.strokeStyle = "#f5b041";
+          ctx.beginPath(); ctx.arc(sx(sq.wx), sy(sq.wy), Math.max(6, 12 * z), 0, Math.PI * 2); ctx.stroke();
+        }
+      }
+    }
+
+    // Projectiles (High-Velocity Tracers & Frag Grenades)
+    for (var pI2 = 0; pI2 < MAX_PROJ; pI2++) {
+      var p = projectiles[pI2];
+      if (!p.active) continue;
+      var px = sx(p.x), py = sy(p.y);
+      if (px < 0 || px > sw || py < 0 || py > sh) continue;
+      ctx.strokeStyle = p.isGrenade ? "#f1948a" : (p.team === 0 ? "#ffe680" : "#ff8566");
+      ctx.lineWidth = p.isGrenade ? 3.5 : 1.7;
+      ctx.beginPath(); ctx.moveTo(sx(p.prevX), sy(p.prevY)); ctx.lineTo(px, py); ctx.stroke();
+    }
+
+    // 240 Soldiers with Procedural Recoil, Weapon Barrels, Stance Scaling & Muzzle Flashes
+    for (var sI = 0; sI < soldiers.length; sI++) {
+      var s = soldiers[sI], ssx = sx(s.x), ssy = sy(s.y);
+      if (ssx < -18 || ssx > sw + 18 || ssy < -18 || ssy > sh + 18) continue;
+
+      if (s.st === 2) {
+        ctx.fillStyle = "rgba(15,15,15,0.48)"; ctx.fillRect(ssx - 2, ssy - 2, 4, 4); continue;
+      }
+      if (s.st === 1) {
+        ctx.fillStyle = "#e74c3c"; ctx.beginPath(); ctx.arc(ssx, ssy, Math.max(3, 4.5 * z), 0, Math.PI * 2); ctx.fill(); continue;
+      }
+
+      // Apply procedural recoil kickback offset
+      var rx = ssx - Math.cos(s.ang) * (s.recoil * z);
+      var ry = ssy - Math.sin(s.ang) * (s.recoil * z);
+
+      // Deployed HMG Tripod Legs
+      if (s.role === "HMG" && s.tripod) {
+        ctx.strokeStyle = "#ff8c1a"; ctx.lineWidth = 2;
+        var leg = Math.max(6, 11 * z);
+        ctx.beginPath();
+        ctx.moveTo(rx, ry); ctx.lineTo(rx + Math.cos(s.ang - 0.5) * leg, ry + Math.sin(s.ang - 0.5) * leg);
+        ctx.moveTo(rx, ry); ctx.lineTo(rx + Math.cos(s.ang + 0.5) * leg, ry + Math.sin(s.ang + 0.5) * leg);
+        ctx.stroke();
+      }
+
+      // Aimed Weapon Barrel & Muzzle Flash
+      var gunLen = Math.max(5, (s.role === "HMG" ? 11 : 8.5) * z);
+      var gxEnd = rx + Math.cos(s.ang) * gunLen, gyEnd = ry + Math.sin(s.ang) * gunLen;
+      ctx.strokeStyle = "#1c1f18"; ctx.lineWidth = Math.max(1.5, 2.2 * z);
+      ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(gxEnd, gyEnd); ctx.stroke();
+
+      if (s.flash > 0) {
+        ctx.fillStyle = "#fff2a6";
+        ctx.beginPath(); ctx.arc(gxEnd, gyEnd, Math.max(2.5, 4.2 * z), 0, Math.PI * 2); ctx.fill();
+      }
+
+      // Selection Ring
+      if (s.team === 0 && (selSq === -1 || s.squad.id === selSq)) {
+        ctx.strokeStyle = s.role === "SL" ? "#ffd700" : "#4da6ff"; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.arc(rx, ry, Math.max(5.5, 9 * z), 0, Math.PI * 2); ctx.stroke();
+      }
+
+      // Suppression Arc
+      if (s.sup > 0.25) {
+        ctx.strokeStyle = s.sup > 0.72 ? "#ff3b30" : "#f5b041"; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.arc(rx, ry, Math.max(4.5, 8 * z), -1.57, -1.57 + Math.PI * 2 * s.sup); ctx.stroke();
+      }
+
+      // Soldier Body (Compresses slightly when crouching/pinned in cover; Blue=Player, Teal=Co-Pilot, Red=Enemy)
+      var stanceScale = s.sup > 0.5 ? 0.84 : 1.0;
+      var rad = Math.max(3.4, (s.role === "SL" ? 6.6 : 5.0) * z * stanceScale);
+      ctx.fillStyle = s.team === 1 ? "#d9463e" : (s.squad.isCopilot ? "#38b2ac" : "#3a8ee6");
+      ctx.beginPath(); ctx.arc(rx, ry, rad, 0, Math.PI * 2); ctx.fill();
+
+      if (s.role !== "R") {
+        ctx.font = "bold 8.5px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillStyle = s.role === "SL" ? "#ffd700" : (s.role === "HMG" ? "#ff9933" : (s.role === "AP" ? "#f1948a" : (s.role === "MG" ? "#ffe082" : "#7dffb3")));
+        var sym = s.role === "SL" ? "\u2605" : (s.role === "HMG" ? "\u2568" : (s.role === "AP" ? "\u2739" : (s.role === "MG" ? "\u25B2" : "+")));
+        ctx.fillText(sym, rx, ry);
+      }
+    }
+
+    // Squad Leader Callsign Banners
+    ctx.font = "bold 9.5px sans-serif"; ctx.textAlign = "center";
+    for (var lI = 0; lI < squads.length; lI++) {
+      var sq2 = squads[lI], lead2 = sq2.members.find(function(m) { return m.st === 0; });
+      if (!lead2) continue;
+      var lsx = sx(lead2.x), lsy = sy(lead2.y) - 15;
+      if (lsx < -40 || lsx > sw + 40 || lsy < -20 || lsy > sh + 20) continue;
+      ctx.fillStyle = "rgba(16,20,14,0.85)"; ctx.fillRect(lsx - 34, lsy - 7, 68, 13);
+      ctx.fillStyle = sq2.team === 1 ? "#ff948a" : (sq2.isCopilot ? "#81e6d9" : "#85c1ff");
+      ctx.fillText(sq2.name + " [" + sq2.order.charAt(0) + "]", lsx, lsy);
+    }
+
+    // Effects, Smoke & Waypoint Ripples
+    for (var eI3 = 0; eI3 < effects.length; eI3++) {
+      var ef2 = effects[eI3]; ctx.fillStyle = ef2.color;
+      ctx.beginPath(); ctx.arc(sx(ef2.x), sy(ef2.y), Math.max(2, ef2.r * z), 0, Math.PI * 2); ctx.fill();
+    }
+    for (var smI2 = 0; smI2 < smokes.length; smI2++) {
+      var sm2 = smokes[smI2]; ctx.fillStyle = "rgba(220,226,216,0.55)";
+      ctx.beginPath(); ctx.arc(sx(sm2.x), sy(sm2.y), Math.max(8, sm2.r * z), 0, Math.PI * 2); ctx.fill();
+    }
+    for (var rpI2 = 0; rpI2 < ripples.length; rpI2++) {
+      var rp2 = ripples[rpI2]; ctx.strokeStyle = "#f5b041"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(sx(rp2.x), sy(rp2.y), Math.max(4, rp2.r * z), 0, Math.PI * 2); ctx.stroke();
+    }
+
+    // Minimap Render
+    var mx = 120 / W, my = 180 / H;
+    mCtx.fillStyle = "#1d2217"; mCtx.fillRect(0, 0, 120, 180);
+    mCtx.fillStyle = "#6e5547"; mCtx.fillRect(0, 1450 * my, 120, 4);
+    flags.forEach(function(fl) {
+      mCtx.fillStyle = fl.own === 0 ? "#4da6ff" : "#ff5c4d";
+      mCtx.fillRect(fl.x * mx - 3, fl.y * my - 3, 6, 6);
+    });
+    squads.forEach(function(sq) {
+      var l = sq.members.find(function(m) { return m.st === 0; });
+      if (l) {
+        mCtx.fillStyle = sq.team === 1 ? "#ff5c4d" : (sq.isCopilot ? "#48c9b0" : "#4da6ff");
+        mCtx.beginPath(); mCtx.arc(l.x * mx, l.y * my, 2.3, 0, Math.PI * 2); mCtx.fill();
+      }
+    });
+    mCtx.strokeStyle = "#ffffff"; mCtx.lineWidth = 1.1;
+    mCtx.strokeRect((cam.x - sw * 0.5 / z) * mx, (cam.y - sh * 0.5 / z) * my, (sw / z) * mx, (sh / z) * my);
+  }
+
+  // 6. UI Controls, Touch Pinch-Zoom & Pan Gestures
+  function selectSquad(id, center) {
+    selSq = id;
+    for (var i = 0; i < 6; i++) document.getElementById("sq" + i).classList.toggle("active-sq", id === i);
+    document.getElementById("sqAll").classList.toggle("active-all", id === -1);
+    var ref = id === -1 ? squads[0] : squads[id];
+    if (ref) {
+      document.getElementById("ordAdv").classList.toggle("active-ord", ref.order === "ADVANCE");
+      document.getElementById("ordHold").classList.toggle("active-ord", ref.order === "HOLD");
+      document.getElementById("ordFlag").classList.toggle("active-ord", ref.order === "ASSAULT_FLAG");
+      document.getElementById("ordRet").classList.toggle("active-ord", ref.order === "FALLBACK");
+      if (center) {
+        var l = ref.members.find(function(m) { return m.st === 0; });
+        if (l) { cam.x = l.x; cam.y = l.y; clampCam(); }
+      }
+    }
+  }
+
+  function bindBtn(id, fn) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener("pointerdown", function(e) { e.preventDefault(); e.stopPropagation(); fn(); });
+  }
+  for (var b = 0; b < 6; b++) (function(idx) { bindBtn("sq" + idx, function() { selectSquad(idx, true); }); })(b);
+  bindBtn("sqAll", function() { selectSquad(-1, false); });
+  bindBtn("bCopilot", function() {
+    copilotOn = !copilotOn;
+    var btn = document.getElementById("bCopilot");
+    btn.classList.toggle("active-copilot", copilotOn);
+    btn.innerHTML = (copilotOn ? "CO-PILOT: ON" : "CO-PILOT: OFF") + '<span class="sub">6 ALLY SQUADS</span>';
+  });
+
+  [["ordAdv","ADVANCE"],["ordHold","HOLD"],["ordFlag","ASSAULT_FLAG"],["ordRet","FALLBACK"]].forEach(function(pair) {
+    bindBtn(pair[0], function() {
+      var limit = selSq === -1 ? 12 : 6;
+      if (selSq === -1) { for (var i = 0; i < limit; i++) setSquadOrder(squads[i], pair[1]); }
+      else if (squads[selSq]) setSquadOrder(squads[selSq], pair[1]);
+      selectSquad(selSq, false);
+    });
+  });
+
+  bindBtn("bSmoke", function() {
+    var list = selSq === -1 ? squads.slice(0, 12) : [squads[selSq]];
+    list.forEach(function(sq) {
+      var l = sq.members.find(function(m) { return m.st === 0; });
+      if (l) spawnSmoke(l.x + Math.cos(sq.ang) * 65, l.y + Math.sin(sq.ang) * 65);
+    });
+  });
+  bindBtn("bWave", function() { waveTimer = 30.0; triggerReinforcementWave(); });
+  bindBtn("bReset", initBattle);
+  bindBtn("bZoomIn", function() { cam.z = clamp(cam.z * 1.22, cam.minZ, cam.maxZ); clampCam(); });
+  bindBtn("bZoomOut", function() { cam.z = clamp(cam.z * 0.82, cam.minZ, cam.maxZ); clampCam(); });
+  bindBtn("bCenter", function() { selectSquad(selSq >= 0 ? selSq : 4, true); });
+
+  var ptrs = {}, px0 = 0, py0 = 0, cx0 = 0, cy0 = 0, maxDrag = 0, pinch0 = 0, downT = 0;
+  function getPtrs() { var a = []; for (var k in ptrs) if (Object.prototype.hasOwnProperty.call(ptrs, k)) a.push(ptrs[k]); return a; }
+
+  cv.addEventListener("pointerdown", function(e) {
+    e.preventDefault();
+    ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var p = getPtrs();
+    if (p.length === 1) { px0 = e.clientX; py0 = e.clientY; cx0 = cam.x; cy0 = cam.y; maxDrag = 0; downT = Date.now(); }
+    else if (p.length === 2) pinch0 = dist(p[0].x, p[0].y, p[1].x, p[1].y);
+  });
+
+  cv.addEventListener("pointermove", function(e) {
+    if (!ptrs[e.pointerId]) return;
+    ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var p = getPtrs();
+    if (p.length === 1) {
+      var dx = e.clientX - px0, dy = e.clientY - py0;
+      maxDrag = Math.max(maxDrag, Math.hypot(dx, dy));
+      if (maxDrag > 6) { cam.x = cx0 - dx / cam.z; cam.y = cy0 - dy / cam.z; clampCam(); }
+    } else if (p.length === 2) {
+      var cd = dist(p[0].x, p[0].y, p[1].x, p[1].y);
+      if (pinch0 > 10) { cam.z = clamp(cam.z * (cd / pinch0), cam.minZ, cam.maxZ); clampCam(); }
+      pinch0 = cd; maxDrag = 999;
+    }
+  });
+
+  function endPtr(e) {
+    delete ptrs[e.pointerId];
+    if (getPtrs().length === 0 && maxDrag < 12 && Date.now() - downT < 320) {
+      var wPt = toWorld(e.clientX, e.clientY);
+      for (var i = 0; i < 6; i++) {
+        var l = squads[i].members.find(function(m) { return m.st === 0; });
+        if (l && dist(wPt.x, wPt.y, l.x, l.y) < 38) { selectSquad(i, false); return; }
+      }
+      if (selSq === -1) {
+        for (var j = 0; j < 12; j++) claimCover(squads[j], wPt.x + ((j % 6) - 2.5) * 190, wPt.y + (j >= 6 ? 120 : 0));
+      } else if (squads[selSq]) claimCover(squads[selSq], wPt.x, wPt.y);
+      ripples.push({ x: wPt.x, y: wPt.y, r: 8, a: 1.0 });
+    }
+  }
+  cv.addEventListener("pointerup", endPtr);
+  cv.addEventListener("pointercancel", endPtr);
+  cv.addEventListener("wheel", function(e) {
+    e.preventDefault(); cam.z = clamp(cam.z * (e.deltaY < 0 ? 1.12 : 0.89), cam.minZ, cam.maxZ); clampCam();
+  }, { passive: false });
+
+  mCv.addEventListener("pointerdown", function(e) {
+    var r = mCv.getBoundingClientRect();
+    cam.x = ((e.clientX - r.left) / r.width) * W; cam.y = ((e.clientY - r.top) / r.height) * H; clampCam();
+  });
+
+  var lastT = Date.now(), fps = 60, uiTick = 0;
+  function mainLoop() {
+    var now = Date.now(), dt = clamp((now - lastT) / 1000, 0.001, 0.05);
+    lastT = now; fps = fps * 0.9 + (1 / dt) * 0.1;
+
+    var activeP = updateSim(dt);
+    renderScene();
+
+    uiTick += dt;
+    if (uiTick > 0.25) {
+      uiTick = 0;
+      var youA = 0, allyA = 0, axisA = 0;
+      for (var i = 0; i < 6; i++) {
+        var c = squads[i].members.filter(function(m) { return m.st === 0; }).length;
+        youA += c; document.getElementById("ms" + i).textContent = c + "/10 | " + Math.round(squads[i].morale) + "%";
+      }
+      for (var j = 6; j < 12; j++) allyA += squads[j].members.filter(function(m) { return m.st === 0; }).length;
+      for (var k = 12; k < 24; k++) axisA += squads[k].members.filter(function(m) { return m.st === 0; }).length;
+
+      document.getElementById("uiYou").textContent = "YOU (6 SQ): " + youA + "/60";
+      document.getElementById("uiAlly").textContent = "CO-PILOT (6 SQ): " + allyA + "/60";
+      document.getElementById("uiWave").textContent = "REINF WAVE: " + Math.ceil(waveTimer) + "s";
+      document.getElementById("uiAxis").textContent = "ENEMY (12 SQ): " + axisA + "/120";
+
+      var fTgt = getAlliedTargetFlag();
+      document.getElementById("uiFlags").textContent =
+        "OBJECTIVE: " + fTgt.name + " [" + fTgt.state + " | " + Math.round(Math.abs(fTgt.timer)) + "/30s]";
+
+      if (selSq >= 0 && squads[selSq]) {
+        var sq = squads[selSq];
+        document.getElementById("uiSquadInfo").innerHTML =
+          "<b>" + sq.name + "</b> | Order: <b>" + sq.order + "</b><br>" +
+          "Morale: <b>" + Math.round(sq.morale) + "%</b> | Suppressed: <b>" + Math.round(sq.supAvg * 100) + "%</b>";
+      }
+      perfEl.textContent = Math.round(fps) + " FPS | " + (youA + allyA + axisA) + " AI | " + activeP + " PROJ";
+    }
+    requestAnimationFrame(mainLoop);
+  }
+
+  initBattle();
+  requestAnimationFrame(mainLoop);
+})();
+</script>
+</body>
+</html>
+<!-- END OF FILE -->
