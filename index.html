@@ -160,8 +160,17 @@
   var redWaveCount = 0;
 
   var MAX_PROJ = 550;
-  for (var pI = 0; pI < MAX_PROJ; pI++) {
-    projectiles.push({ active: false, isShell: false, x: 0, y: 0, prevX: 0, prevY: 0, vx: 0, vy: 0, team: 0, dmg: 0, supPower: 0, life: 0 });
+   function fireBullet(x, y, ang, spd, team, dmg, sup, isShell, life) {
+    for (var i = 0; i < MAX_PROJ; i++) {
+      var p = projectiles[i];
+      if (!p.active) {
+        p.active = true; p.isShell = isShell;
+        p.x = x; p.y = y; p.prevX = x; p.prevY = y;
+        p.vx = Math.cos(ang) * spd; p.vy = Math.sin(ang) * spd;
+        p.team = team; p.dmg = dmg; p.supPower = sup; p.life = life;
+        return;
+      }
+    }
   }
 
   function initGrid() {
