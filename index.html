@@ -671,22 +671,20 @@
     var wallLineY = 2428;
     for (var i = 0; i < clusters.length; i++) {
       var c = clusters[i], d = dist(sq.wx, sq.wy, c.x, c.y);
-      if (d > 195) continue;
+      if (d > 320) continue;
       if (c.isBattlement && sq.team === 1 && d > 95) continue;
       if (sq.wy > wallLineY + 25 && c.y < wallLineY - 25) continue;
       if (sq.wy < wallLineY - 25 && c.y > wallLineY + 25) continue;
 
       var free = 0;
       for (var k = 0; k < c.nodes.length; k++) if (!c.nodes[k].occ) free++;
-      if (free < 2) continue;
-      // Bonus for defilade / wall-shadow clusters that shield from direct fire!
       var defiladeBonus = hasWallShadowCover(c.x, c.y, sq.team) ? 35 : 0;
-      var sc = (195 - d) + c.bonus * 85 + defiladeBonus - getDanger(c.x, c.y, sq.team) * 0.45;
+      var sc = (320 - d) + c.bonus * 85 + free * 8 + defiladeBonus - getDanger(c.x, c.y, sq.team) * 0.45;
       if (sc > bestScore) { bestScore = sc; best = c; }
     }
     sq.cluster = best;
     if (!best) return;
-    sq.wx = best.x; sq.wy = best.y;
+    sq.wx = best.x + rand(-18, 18); sq.wy = best.y + rand(-18, 18);
     sq.members.forEach(function(m) {
       if (m.st !== 0) return;
       for (var j = 0; j < best.nodes.length; j++) {
@@ -755,8 +753,8 @@
     return dSq(px, py, x1 + t * (x2 - x1), y1 + t * (y2 - y1));
   }
 
-  function spawnCivilianGroup() {
-    if (civilians.length > 75 || (civsSaved + civilians.length) >= TOTAL_CIVS_TO_EVAC) return;
+   function spawnCivilianGroup() {
+    if (civilians.length > 75) return; // Continuous stream for the entire 20 minutes!
     for (var pIdx = 0; pIdx < piers.length; pIdx++) {
       var pr = piers[pIdx];
       for (var c = 0; c < 3; c++) {
@@ -1116,13 +1114,13 @@
     spawnArmoredTank(1, 2);
   }
 
+  // Spawn 6 Independent Allied Vanguard Teams that immediately march North to reinforce the frontline!
   function spawnAlliedVanguardResponse() {
-    var vanSpawnsX = [595, 820, 1200, 1500, 1800, 2180];
-    var vanTargets = [flags[2], flags[4], flags[3], flags[3], flags[5], flags[6]];
+    var vanSpawnsX = [595, 820, 1200, 1500, 1800, 2405];
     for (var k = 0; k < 6; k++) {
       if (squads.length < 130) {
-        var vx = vanSpawnsX[k] + rand(-35, 35);
-        var vy = 4680 + rand(-25, 25);
+        var vx = vanSpawnsX[k] + rand(-30, 30);
+        var vy = 4420 + rand(-25, 25); // Spawn North of the Port Trench
         var vSq = createSquad(
           squads.length,
           nextSquadNum++,
@@ -1134,11 +1132,11 @@
           "ADVANCE",
           (k - 2.5) * 0.5
         );
-        var tgtF = (vanTargets[k] && vanTargets[k].own !== 0) ? vanTargets[k] : getAlliedTargetFlag();
-        claimCover(vSq, tgtF.x + rand(-80, 80), tgtF.y + rand(-60, 60));
+        vSq.think = 0.05; // Immediately compute first northward tactical bound!
+        claimCover(vSq, vx, vy - 380);
       }
     }
-    ripples.push({ x: 1500, y: 4680, r: 22, a: 1.0 });
+    ripples.push({ x: 1500, y: 4420, r: 22, a: 1.0 });
   }
 
   function triggerEndGame(isVictory, reasonText) {
@@ -1456,7 +1454,6 @@
           }
         }
       }
-    }
 
     // Move Civilians onto their Pier & Board docked Ferry Boats
     for (var cI = civilians.length - 1; cI >= 0; cI--) {
@@ -1657,6 +1654,7 @@
     var flg = sq.team === 0 ? getAlliedTargetFlag() : getAxisTargetFlag();
     var wallY = 2428;
 
+    // 1. Axis breach funneling through City Gates
     if (sq.team === 1 && lead.y < 2480) {
       var breachedGate = null, minBreachDist = Infinity;
       for (var bG = 0; bG < gates.length; bG++) {
@@ -1665,7 +1663,6 @@
           if (dBG < minBreachDist) { minBreachDist = dBG; breachedGate = gates[bG]; }
         }
       }
-
       if (breachedGate && (minBreachDist < 950 || gates[sq.lane < 0 ? 0 : (sq.lane > 0 ? 2 : 1)].hp <= 0)) {
         if (lead.y < 2260 && Math.abs(lead.x - breachedGate.cx) > 140) {
           claimCover(sq, breachedGate.cx + rand(-55, 55), Math.min(2340, lead.y + 280));
@@ -1677,15 +1674,17 @@
       }
     }
 
+    // 2. Mutual Support: Check for ANY friendly squad under attack (searched across the whole map for Vanguards!)
     var distressedAlly = null, bestDistressScore = 0;
+    var maxSupportRange = sq.isIndependent ? 2800 : 950;
     for (var i = 0; i < squads.length; i++) {
       var other = squads[i];
       if (other === sq || other.team !== sq.team) continue;
       var ol = other.activeLeader;
       if (!ol) continue;
       var dAlly = dist(lead.x, lead.y, ol.x, ol.y);
-      if (dAlly > 90 && dAlly < 680 && (other.supAvg > 0.40 || other.underAttackT > 0 || other.encircled)) {
-        var score = (other.supAvg * 120 + (other.underAttackT > 0 ? 55 : 0) + (other.encircled ? 75 : 0)) - dAlly * 0.08;
+      if (dAlly > 90 && dAlly < maxSupportRange && (other.supAvg > 0.30 || other.underAttackT > 0 || other.encircled)) {
+        var score = (other.supAvg * 140 + (other.underAttackT > 0 ? 75 : 0) + (other.encircled ? 90 : 0)) - dAlly * 0.04;
         if (score > bestDistressScore) {
           bestDistressScore = score;
           distressedAlly = ol;
@@ -1697,10 +1696,10 @@
     var isSupporting = false;
     var targetFlagObj = flg;
 
-    if (distressedAlly && (sq.isIndependent || Math.random() < 0.45)) {
+    if (distressedAlly && (sq.isIndependent || Math.random() < 0.55)) {
       var flankAngle = sq.ang + (sq.id % 2 === 0 ? 0.9 : -0.9);
-      goalX = distressedAlly.x + Math.cos(flankAngle) * 145;
-      goalY = distressedAlly.y + Math.sin(flankAngle) * 145;
+      goalX = distressedAlly.x + Math.cos(flankAngle) * 140;
+      goalY = distressedAlly.y + Math.sin(flankAngle) * 140;
       isSupporting = true;
     } else {
       var bestFlag = flg, minFlagScore = 999999;
@@ -1715,27 +1714,37 @@
           if (candF.id === 4 && (sq.lane < 0 || lead.x < 1150 || sq.id % 3 === 0)) laneBias = -550;
           if (candF.id === 5 && (sq.lane > 0 || lead.x > 1850 || sq.id % 3 === 2)) laneBias = -550;
           if (candF.id === 3 && Math.abs(lead.x - 1500) < 450) laneBias = -420;
-          var priorityBias = (sq.isIndependent && candF.state === "CONTESTED") ? -350 : 0;
+          var priorityBias = (sq.isIndependent && candF.state === "CONTESTED") ? -450 : 0;
           var fScore = df + laneBias + priorityBias + (sq.team === 1 ? candF.y * 0.12 : -candF.y * 0.12);
           if (fScore < minFlagScore) { minFlagScore = fScore; bestFlag = candF; }
         }
       }
       targetFlagObj = bestFlag;
-      goalX = bestFlag.x; goalY = bestFlag.y;
+      goalX = bestFlag.x + (sq.lane * 140);
+      goalY = bestFlag.y;
     }
 
-    if (!isSupporting && dist(lead.x, lead.y, targetFlagObj.x, targetFlagObj.y) < 380) {
+    if (!isSupporting && dist(lead.x, lead.y, targetFlagObj.x, targetFlagObj.y) < 360) {
       claimCover(sq, targetFlagObj.x + rand(-55, 55), targetFlagObj.y + rand(-55, 55));
       return;
     }
 
-    if (sq.team === 1 && lead.y < wallY - 20 && goalY > wallY + 20) {
+    // 3. Route BOTH Axis AND Allied squads cleanly through the 3 City Gates when crossing Y = 2428!
+    if (sq.team === 0 && lead.y > wallY + 40 && goalY < wallY - 40) {
+      var allyGate = getNearestGate(lead.x, lead.y);
+      if (Math.abs(lead.x - allyGate.cx) > 120 && lead.y > 2560) {
+        goalX = allyGate.cx + rand(-40, 40);
+        goalY = 2550;
+      } else {
+        goalX = allyGate.cx + rand(-45, 45);
+        goalY = 2270;
+      }
+    } else if (sq.team === 1 && lead.y < wallY - 20 && goalY > wallY + 20) {
       var prefGateIdx = sq.lane < 0 ? 0 : (sq.lane > 0 ? 2 : 1);
       for (var gB = 0; gB < gates.length; gB++) {
         if (gates[gB].hp <= 0 && Math.abs(lead.x - gates[gB].cx) < 950) { prefGateIdx = gB; break; }
       }
       var tgtGate = gates[prefGateIdx];
-
       var useLadder = (!sq.isHmg && (sq.id % 4 === 0) && tgtGate.hp > 0);
       if (useLadder) {
         var nearLad = ladders[0], minLD = Infinity;
@@ -1749,14 +1758,6 @@
         goalX = tgtGate.cx + rand(-45, 45);
         goalY = tgtGate.hp > 0 ? 2270 : 2560;
       }
-
-      if (dist(lead.x, lead.y, goalX, wallY) < 340 && sq.smkCd <= 0) {
-        var smkM = sq.members.find(function(m) { return m.st === 0 && m.hasSmoke; });
-        if (smkM) {
-          smkM.hasSmoke = false; sq.smkCd = 12.0;
-          spawnSmoke(lead.x + (goalX - lead.x) * 0.45, lead.y + (wallY - lead.y) * 0.45);
-        }
-      }
     }
 
     var toGoalX = goalX - lead.x, toGoalY = goalY - lead.y;
@@ -1764,7 +1765,7 @@
     var dirX = distToGoal > 1 ? toGoalX / distToGoal : 0;
     var dirY = distToGoal > 1 ? toGoalY / distToGoal : (sq.team === 1 ? 1 : -1);
 
-    var stepDist = Math.min(295, Math.max(130, distToGoal * 0.70));
+    var stepDist = Math.min(340, Math.max(160, distToGoal * 0.75));
     var idealX = lead.x + dirX * stepDist;
     var idealY = lead.y + dirY * stepDist;
 
@@ -1773,33 +1774,24 @@
       var cl = clusters[cI];
       if (cl.isBattlement && sq.team === 1) continue;
       if (idealY > wallY + 25 && cl.y < wallY - 25) continue;
+      if (idealY < wallY - 25 && cl.y > wallY + 25) continue;
       var dFromLead = dist(lead.x, lead.y, cl.x, cl.y);
-      if (dFromLead > 420) continue;
+      if (dFromLead > 480) continue;
 
       var dFromIdeal = dist(idealX, idealY, cl.x, cl.y);
       var dFromGoal = dist(goalX, goalY, cl.x, cl.y);
       var progressGain = distToGoal - dFromGoal;
-      if (progressGain < -20) continue;
+      // Require forward progress so Vanguards never stay in the rear trench!
+      if (progressGain < 25) continue;
 
       var danger = getDanger(cl.x, cl.y, sq.team);
-      // Tactical AI Cover Preference: Prefer fortified trenches and wall-shadow defilade while advancing!
-      var defiladeBonus = hasWallShadowCover(cl.x, cl.y, sq.team) ? 52 : 0;
+      var defiladeBonus = hasWallShadowCover(cl.x, cl.y, sq.team) ? 45 : 0;
 
-      var cohesionBonus = 0;
-      for (var sJ = 0; sJ < squads.length; sJ++) {
-        var allySq = squads[sJ];
-        if (allySq === sq || allySq.team !== sq.team) continue;
-        var dWp = dist(cl.x, cl.y, allySq.wx, allySq.wy);
-        if (dWp < 115) cohesionBonus -= 145;
-        else if (dWp >= 130 && dWp <= 360) cohesionBonus += 40;
-      }
-
-      var score = progressGain * 1.35
-                - dFromIdeal * 0.65
-                + cl.bonus * 85
+      var score = progressGain * 1.65
+                - dFromIdeal * 0.55
+                + cl.bonus * 75
                 + defiladeBonus
-                + cohesionBonus
-                - danger * (isSupporting ? 0.5 : 1.25)
+                - danger * (isSupporting ? 0.4 : 1.1)
                 + rand(-15, 15);
 
       if (score > bestCScore) {
@@ -1811,7 +1803,7 @@
     if (bestCluster) {
       claimCover(sq, bestCluster.x, bestCluster.y);
     } else {
-      claimCover(sq, idealX + rand(-35, 35), idealY + rand(-35, 35));
+      claimCover(sq, idealX + rand(-30, 30), idealY + rand(-30, 30));
     }
   }
 
