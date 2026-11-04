@@ -998,8 +998,29 @@
    // Spawn 6 Independent Allied Vanguard Teams (60 Soldiers) whenever an Enemy Wave arrives!
   function spawnAlliedVanguardResponse() {
     var vanSpawnsX = [595, 820, 1200, 1500, 1800, 2180];
-    var vanTargets = [flags[2], flags[4], flags[3], flags[3], flags[5], flags[6]]; 
+    var vanTargets = [flags[2], flags[4], flags[3], flags[3], flags[5], flags[6]];
     for (var k = 0; k < 6; k++) {
+      if (squads.length < 130) {
+        var vx = vanSpawnsX[k] + rand(-35, 35);
+        var vy = 4480 + rand(-25, 25);
+        var vSq = createSquad(
+          squads.length,
+          nextSquadNum++,
+          0,
+          "INDEPENDENT",
+          vx,
+          vy,
+          (k % 2 === 1),
+          "ADVANCE",
+          (k - 2.5) * 0.5
+        );
+        var tgtF = (vanTargets[k] && vanTargets[k].own !== 0) ? vanTargets[k] : getAlliedTargetFlag();
+        claimCover(vSq, tgtF.x + rand(-80, 80), tgtF.y + rand(-60, 60));
+      }
+    }
+    ripples.push({ x: 1500, y: 4480, r: 22, a: 1.0 });
+  }
+
       if (squads.length < 130) {
         var vx = vanSpawnsX[k] + rand(-35, 35);
         var vy = 4480 + rand(-25, 25);
