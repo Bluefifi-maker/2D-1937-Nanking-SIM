@@ -1420,14 +1420,13 @@
     s.inTrench = isInUrbanTrench(s.x, s.y);
   }
 
-  // Update Boats & Waiting Civilians at Xiakou Port
+   // Update Boats & Waiting Civilians at Xiakou Port
   function updateEvacuationPort(dt) {
     civSpawnTimer -= dt;
     if (civSpawnTimer <= 0) {
       civSpawnTimer = 5.5;
       spawnCivilianGroup();
     }
-
     // Update 3 Ferry Boats
     for (var bI = 0; bI < boats.length; bI++) {
       var bt = boats[bI];
@@ -1449,11 +1448,9 @@
           civsSaved += bt.onboard;
           bt.onboard = 0;
           bt.state = "ARRIVING";
-          if (civsSaved >= TOTAL_CIVS_TO_EVAC) {
-            triggerEndGame(true, "All " + civsSaved + " civilians have been safely evacuated across the Yangtze River!");
-          }
         }
       }
+    } // <-- Properly closes the boat loop
 
     // Move Civilians onto their Pier & Board docked Ferry Boats
     for (var cI = civilians.length - 1; cI >= 0; cI--) {
@@ -1462,7 +1459,6 @@
       var pr0 = piers[civ.pierIdx];
       var bt0 = boats[civ.pierIdx];
 
-      // Check if an enemy soldier or tank is close -> Civilians panic and run toward the pier tip
       var targetX = pr0.cx + ((cI % 5) - 2) * 14;
       var targetY = (bt0.state === "BOARDING") ? (pr0.dockY - 8) : (pr0.y + 45 + (cI % 6) * 16);
 
@@ -1473,14 +1469,12 @@
         civ.y += (dy / d) * 44 * dt;
       }
 
-      // Board docked boat!
       if (bt0.state === "BOARDING" && bt0.onboard < bt0.capacity && dist(civ.x, civ.y, pr0.cx, pr0.dockY) < 42) {
         bt0.onboard++;
         civilians.splice(cI, 1);
       }
     }
-  }
-}
+  } // <-- Properly closes updateEvacuationPort
   // Update Battlefield Lieutenants (Defilade Wall-Shadow Seeking + Tactical Commander Skills!)
   function updateLieutenants(dt) {
     for (var t = 0; t < 2; t++) {
