@@ -743,9 +743,9 @@
     }
 
     gates = [
-      { id: 0, name: "WEST FLANK GATE",   x: 495,  y: 2380, w: 200, h: 96, cx: 595,  cy: 2428, hp: GATE_MAX_HP, maxHp: GATE_MAX_HP, isGate: true, breachedNotified: false },
+      { id: 0, name: "WEST FLANK GATE",   x: 495,  y: 2380, w: 200, h: 96, cx: 595,  cy: 2428, hp: GATE_MAX_HP, maxHp: 20000, isGate: true, breachedNotified: false },
       { id: 1, name: "ZHONGHUA MAIN GATE",x: 1340, y: 2380, w: 320, h: 96, cx: 1500, cy: 2428, hp: 30000, maxHp: 30000, isGate: true, breachedNotified: false },
-      { id: 2, name: "EAST FLANK GATE",   x: 2305, y: 2380, w: 200, h: 96, cx: 2405, cy: 2428, hp: GATE_MAX_HP, maxHp: GATE_MAX_HP, isGate: true, breachedNotified: false }
+      { id: 2, name: "EAST FLANK GATE",   x: 2305, y: 2380, w: 200, h: 96, cx: 2405, cy: 2428, hp: GATE_MAX_HP, maxHp: 20000, isGate: true, breachedNotified: false }
     ];
 
     [
@@ -995,11 +995,32 @@
     spawnArmoredTank(1, 2);
   }
 
-  // Spawn 3 Independent Allied Vanguard Teams (30 Soldiers) whenever an Enemy Wave arrives!
+   // Spawn 6 Independent Allied Vanguard Teams (60 Soldiers) whenever an Enemy Wave arrives!
   function spawnAlliedVanguardResponse() {
-    var vanSpawnsX = [820, 1500, 2180];
-    var vanTargets = [flags[4], flags[3], flags[5]]; // F5 West Arsenal, F4 Zhonghua Bastion, F6 East Ward
-    for (var k = 0; k < 3; k++) {
+    var vanSpawnsX = [595, 820, 1200, 1500, 1800, 2180];
+    var vanTargets = [flags[2], flags[4], flags[3], flags[3], flags[5], flags[6]]; 
+    for (var k = 0; k < 6; k++) {
+      if (squads.length < 130) {
+        var vx = vanSpawnsX[k] + rand(-35, 35);
+        var vy = 4480 + rand(-25, 25);
+        var vSq = createSquad(
+          squads.length,
+          nextSquadNum++,
+          0,
+          "INDEPENDENT",
+          vx,
+          vy,
+          (k % 2 === 1),
+          "ADVANCE",
+          (k - 2.5) * 0.5
+        );
+        var tgtF = vanTargets[k].own !== 0 ? vanTargets[k] : getAlliedTargetFlag();
+        claimCover(vSq, tgtF.x + rand(-80, 80), tgtF.y + rand(-60, 60));
+      }
+    }
+    ripples.push({ x: 1500, y: 4480, r: 22, a: 1.0 });
+  }
+
       if (squads.length < 115) {
         var vx = vanSpawnsX[k] + rand(-35, 35);
         var vy = 4480 + rand(-25, 25);
@@ -1130,9 +1151,9 @@
       spawnedMen += 10;
     }
 
-    var indSpawnsX = [595, 1220, 1780, 2405];
-    for (var k = 0; k < 4; k++) {
-      if (squads.length < 110) {
+      var indSpawnsX = [450, 820, 1220, 1780, 2180, 2550];
+    for (var k = 0; k < 6; k++) {
+      if (squads.length < 130) {
         var indX = indSpawnsX[k] + rand(-35, 35);
         var indY = baseSpawnY + (team === 1 ? 65 : -65);
         var indSq = createSquad(
@@ -1142,11 +1163,11 @@
           "INDEPENDENT",
           indX,
           indY,
-          (k === 1),
+          (k % 2 === 1),
           "ADVANCE",
-          k - 1.5
+          (k - 2.5) * 0.5
         );
-        claimCover(indSq, targetFlag.x + (k - 1.5) * 220, targetFlag.y);
+        claimCover(indSq, targetFlag.x + (k - 2.5) * 160, targetFlag.y);
       }
     }
 
