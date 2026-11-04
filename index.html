@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Yuhuatai 1937: Expanded Theatre Combined-Arms</title>
+<style>
+  :root{--bg:#1e2318;--panel:rgba(18,22,16,0.93);--brass:#8a7f5d;--cream:#eee8d5;--blue:#4da6ff;--teal:#48c9b0;--gold:#f4d03f;--purple:#bb8fce;--red:#ff5c4d;--amber:#f5b041}
+  *{box-sizing:border-box;user-select:none;-webkit-user-select:none;margin:0;padding:0}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:var(--cream);touch-action:none}
+  #viewportCanvas{position:fixed;top:0;left:0;width:100%;height:100%;display:block;background:#293021;z-index:1}
+  #topHud{position:fixed;top:8px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:center;gap:6px;z-index:10;pointer-events:none;flex-wrap:wrap}
+  .hud-card{background:var(--panel);border:1.5px solid var(--brass);border-radius:8px;padding:5px 10px;pointer-events:auto;box-shadow:0 4px 14px rgba(0,0,0,0.65);display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;flex-wrap:wrap}
+  .pill{padding:2px 6px;border-radius:4px;font-variant-numeric:tabular-nums}
+  .p-you{background:rgba(77,166,255,0.22);border:1px solid var(--blue);color:#a8d5ff}
+  .p-ally{background:rgba(72,201,176,0.22);border:1px solid var(--teal);color:#a3f0e0}
+  .p-ind{background:rgba(244,208,63,0.22);border:1px solid var(--gold);color:#fff2b2}
+  .p-wave{background:rgba(245,176,65,0.22);border:1px solid var(--amber);color:#ffe0a3}
+  .p-axis{background:rgba(255,92,77,0.22);border:1px solid var(--red);color:#ffb3ad}
+  #perfReadout{font-family:ui-monospace,monospace;font-size:11px;color:#7dffb3}
+  #minimapWrap{position:fixed;top:52px;left:10px;background:var(--panel);border:1.5px solid var(--brass);border-radius:8px;padding:6px;z-index:10;display:flex;flex-direction:column;align-items:center;gap:4px;box-shadow:0 6px 20px rgba(0,0,0,0.7)}
+  #minimapCanvas{width:125px;height:200px;border:1px solid #59533e;border-radius:4px;background:#1d2217;cursor:pointer;display:block}
+  .cam-controls{display:flex;gap:3px;width:100%}
+  .cam-btn{flex:1;background:#2e3428;color:var(--cream);border:1px solid #636b54;border-radius:4px;padding:5px 0;font-size:10px;font-weight:700;cursor:pointer}
+  #rightTelemetry{position:fixed;top:52px;right:10px;background:var(--panel);border:1px solid var(--brass);border-radius:8px;padding:8px 10px;font-size:10.5px;line-height:1.4;max-width:265px;z-index:9;pointer-events:none}
+  .legend-item{display:flex;align-items:center;gap:5px;margin-top:2px}
+  #commandDeck{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);background:var(--panel);border:2px solid var(--brass);border-radius:12px;padding:6px 8px;display:flex;flex-direction:column;gap:5px;z-index:10;box-shadow:0 8px 28px rgba(0,0,0,0.8);width:98vw;max-width:880px}
+  .deck-row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px}
+  .sq-btn{appearance:none;background:#2b3226;color:var(--cream);border:1.5px solid #58604b;border-radius:6px;padding:5px 7px;font-size:10.5px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;min-width:68px}
+  .sq-btn span.sub{font-size:8.5px;font-weight:500;color:#b2ab92;margin-top:1px}
+  .sq-btn.active-sq{border-color:var(--blue)!important;background:rgba(77,166,255,0.34)!important;color:#fff!important}
+  .sq-btn.active-all{border-color:#ffd700!important;background:rgba(255,215,0,0.3)!important;color:#fff3b0!important}
+  .sq-btn.active-copilot{border-color:var(--teal)!important;background:rgba(72,201,176,0.3)!important;color:#b8fff0!important}
+  .sq-btn.active-ord{border-color:var(--amber)!important;background:rgba(245,176,65,0.34)!important;color:#ffe7ba!important}
+  .sq-btn.util-btn{background:#3d3526;border-color:#917948}
+  .sep{width:1.5px;height:24px;background:var(--brass);opacity:0.5;margin:0 2px}
+  @media(max-width:880px){#rightTelemetry{display:none}.sq-btn{min-width:56px;padding:4px 5px;font-size:9.5px}}
+</style>
+<script>
+  window.onerror = function(msg, url, line) {
+    var el = document.getElementById("perfReadout");
+    if (el) { el.style.color = "#ff5c4d"; el.textContent = "ERR L" + line + ": " + msg; }
+  };
+</script>
+</head>
+<body>
+
+<div id="topHud">
+  <div class="hud-card">
+    <span class="pill p-you" id="uiYou">YOU (1-8): 80</span>
+    <span class="pill p-ally" id="uiAlly">ALLY (9-16): 80</span>
+    <span class="pill p-ind" id="uiInd">VANGUARD AI: 0</span>
+    <span class="pill p-wave" id="uiWave">NEXT: RED WAVE (90s)</span>
+    <span class="pill p-axis" id="uiAxis">RED ATTACKERS: 160</span>
+  </div>
+  <div class="hud-card" id="uiFlags" style="color:var(--amber)">OBJECTIVE: F2 YUHUATAI HIGH GROUND</div>
+  <div class="hud-card" id="perfReadout">BOOTING...</div>
+</div>
+
+<div id="minimapWrap">
+  <div style="font-size:9px;font-weight:700;color:var(--amber)">THEATRE MAP (TAP)</div>
+  <canvas id="minimapCanvas" width="125" height="200"></canvas>
+  <div class="cam-controls">
+    <button class="cam-btn" id="bZoomIn">+ ZOOM</button>
+    <button class="cam-btn" id="bZoomOut">- ZOOM</button>
+    <button class="cam-btn" id="bCenter">CENTER</button>
+  </div>
+</div>
+
+<div id="rightTelemetry">
+  <div style="font-weight:700;color:var(--amber);margin-bottom:2px">1937 YUHUATAI -> ZHONGHUA GATE</div>
+  <div id="uiSquadInfo">Tap a squad button (1-8) or quick-tap ground.</div>
+  <hr style="border:0;border-top:1px solid #4c5240;margin:4px 0">
+  <div style="font-weight:700;font-size:9.5px;color:#b8b096">BATTLEFIELD RULES &amp; FACTIONS</div>
+  <div class="legend-item"><b style="color:#ffd700">&#9873; SMOKE KIT</b>: SL + 2 Members per Squad (3/10)</div>
+  <div class="legend-item"><b style="color:#f4d03f">&#9733; VANGUARD AI</b>: +40 Independent Reinforcements/Wave</div>
+  <div class="legend-item"><b style="color:#4da6ff">&#9835; TRUMPET</b>: Morale &gt;85 triggers Bayonet Charge!</div>
+  <div class="legend-item"><b style="color:#58d68d">&#9770; COHESION AI</b>: 360&deg; Flank, Support &amp; Rescue</div>
+  <div style="margin-top:4px;font-size:9.5px;color:#b5ad94">
+    <b>Waves (120 + 40):</b> 120 Main + 40 New Independent AI Squads.<br>
+    <b>Direction:</b> Red attacks South down Yuhuatai Hills into Zhonghua Gate &amp; City Centre!
+  </div>
+</div>
+
+<div id="commandDeck">
+  <div class="deck-row">
+    <button class="sq-btn" id="sq0">1<span class="sub" id="ms0">10/10</span></button>
+    <button class="sq-btn" id="sq1">2<span class="sub" id="ms1">10/10</span></button>
+    <button class="sq-btn" id="sq2">3<span class="sub" id="ms2">10/10</span></button>
+    <button class="sq-btn" id="sq3">4<span class="sub" id="ms3">10/10</span></button>
+    <button class="sq-btn active-sq" id="sq4">5<span class="sub" id="ms4">10/10</span></button>
+    <button class="sq-btn" id="sq5">6<span class="sub" id="ms5">10/10</span></button>
+    <button class="sq-btn" id="sq6">7<span class="sub" id="ms6">10/10</span></button>
+    <button class="sq-btn" id="sq7">8<span class="sub" id="ms7">10/10</span></button>
+    <div class="sep"></div>
+    <button class="sq-btn active-copilot" id="bCopilot">CO-PILOT: ON<span class="sub">SQUADS 9-16</span></button>
+    <button class="sq-btn" id="sqAll">ALL ALLIED<span class="sub">OVERRIDE</span></button>
+  </div>
+  <div class="deck-row">
+    <button class="sq-btn" id="ordAdv">ADVANCE<span class="sub">Bound &amp; Flank</span></button>
+    <button class="sq-btn active-ord" id="ordHold">HOLD &amp; DEPLOY<span class="sub">Snap &amp; Build</span></button>
+    <button class="sq-btn" id="ordFlag">ASSAULT FLAG<span class="sub">Push Objective</span></button>
+    <button class="sq-btn" id="ordRet">FALL BACK<span class="sub">Smoke + Retreat</span></button>
+    <div class="sep"></div>
+    <button class="sq-btn util-btn" id="bSmoke">SQUAD SMOKE<span class="sub">SL + 2 Kit</span></button>
+    <button class="sq-btn util-btn" id="bWave">TRIGGER WAVE<span class="sub">120 + 40 Vanguard</span></button>
+    <button class="sq-btn util-btn" id="bReset">RESET BATTLE<span class="sub">Full Redeploy</span></button>
+  </div>
+</div>
+
+<canvas id="viewportCanvas" width="1024" height="768"></canvas>
+
+<script>
+(function() {
+  "use strict";
+
+  var perfEl = document.getElementById("perfReadout");
+  perfEl.textContent = "JS ACTIVE | 60 FPS";
+
+  // Expanded Theatre Dimensions (3000 x 4800)
+  // Inverted Map: Top (North, Y: 200..1950) = Yuhuatai Hills (Axis Attackers start here, pushing South/+Y)
+  // Middle (Y: 2350..2750) = Zhonghua Gate & Fortified City Wall
+  // Bottom (South, Y: 2900..4500) = Nanjing Urban Streets & City Centre (Allies defend & counterattack North/-Y)
+  var W = 3000, H = 4800;
+  var SOLDIER_MAX_HP = 100;
+  var TANK_MAX_HP = SOLDIER_MAX_HP * 8;
+
+  var cv = document.getElementById("viewportCanvas"), ctx = cv.getContext("2d");
+  var mCv = document.getElementById("minimapCanvas"), mCtx = mCv.getContext("2d");
+  var sw = window.innerWidth || 1024, sh = window.innerHeight || 768;
+
+  var cam = { x: 1500, y: 2150, z: 0.50, minZ: 0.24, maxZ: 1.45 };
+
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function dSq(x1, y1, x2, y2) { return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1); }
+  function dist(x1, y1, x2, y2) { return Math.sqrt(dSq(x1, y1, x2, y2)); }
+  function normAng(a) { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; }
+
+  function sx(wx) { return (wx - cam.x) * cam.z + sw * 0.5; }
+  function sy(wy) { return (wy - cam.y) * cam.z + sh * 0.5; }
+  function toWorld(px, py) { return { x: (px - sw * 0.5) / cam.z + cam.x, y: (py - sh * 0.5) / cam.z + cam.y }; }
+
+  function clampCam() {
+    var hw = (sw * 0.5) / cam.z, hh = (sh * 0.5) / cam.z;
+    cam.x = clamp(cam.x, Math.min(hw, W * 0.5), Math.max(W - hw, W * 0.5));
+    cam.y = clamp(cam.y, Math.min(hh, H * 0.5), Math.max(H - hh, H * 0.5));
+  }
+
+  function resize() {
+    var w = Math.max(300, window.innerWidth || 1024), h = Math.max(300, window.innerHeight || 768);
+    if (cv.width !== w || cv.height !== h) { sw = w; sh = h; cv.width = w; cv.height = h; clampCam(); }
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  /****************************************************************************
+   * 1. INVERTED & EXPANDED MAP GEOMETRY (YUHUATAI HILLS -> ZHONGHUA GATE -> CITY)
+   ****************************************************************************/
+  var walls = [], roads = [], trenches = [], clusters = [], nodes = [], flags = [], sandbags = [];
+  var G_COLS = 15, G_ROWS = 24, CW = W / G_COLS, CH = H / G_ROWS, infGrid = [];
+  var squads = [], soldiers = [], tanks = [], projectiles = [], grenades = [], smokes = [], effects = [], ripples = [];
+  var selSq = 4, copilotOn = true;
+  var nextSquadNum = 1;
+
+  var waveTimer = 90.0;
+  var nextWaveTeam = 1; // Enemy team (1 = Axis) gets the first reinforcement wave!
+  var blueWaveCount = 0;
+  var redWaveCount = 0;
+
+  var MAX_PROJ = 800;
+  for (var pInit = 0; pInit < MAX_PROJ; pInit++) {
+    projectiles.push({
+      active: false, isShell: false,
+      x: 0, y: 0, prevX: 0, prevY: 0,
+      vx: 0, vy: 0, team: 0, dmg: 0, supPower: 0, life: 0
+    });
+  }
+
+  function fireBullet(x, y, ang, spd, team, dmg, sup, isShell, life) {
+    for (var i = 0; i < MAX_PROJ; i++) {
+      var p = projectiles[i];
+      if (!p.active) {
+        p.active = true; p.isShell = isShell;
+        p.x = x; p.y = y; p.prevX = x; p.prevY = y;
+        p.vx = Math.cos(ang) * spd; p.vy = Math.sin(ang) * spd;
+        p.team = team; p.dmg = dmg; p.supPower = sup; p.life = life;
+        return;
+      }
+    }
+  }
+
+  function initGrid() {
+    infGrid = [];
+    for (var i = 0; i < G_COLS * G_ROWS; i++) infGrid.push({ a: 0, e: 0, heat: 0 });
+  }
+
+  function updateGrid(dt) {
+    for (var i = 0; i < infGrid.length; i++) {
+      infGrid[i].a = 0; infGrid[i].e = 0; infGrid[i].heat *= (1 - 0.14 * dt);
+    }
+    for (var j = 0; j < soldiers.length; j++) {
+      var s = soldiers[j];
+      if (s.st !== 0) continue;
+      var gx = clamp(Math.floor(s.x / CW), 0, G_COLS - 1), gy = clamp(Math.floor(s.y / CH), 0, G_ROWS - 1);
+      var cell = infGrid[gy * G_COLS + gx], w = s.role === "HMG" ? 2.5 : 1.0;
+      if (s.team === 0) cell.a += w; else cell.e += w;
+    }
+  }
+
+  function getDanger(wx, wy, team) {
+    var gx = clamp(Math.floor(wx / CW), 0, G_COLS - 1), gy = clamp(Math.floor(wy / CH), 0, G_ROWS - 1);
+    var c = infGrid[gy * G_COLS + gx];
+    return (team === 0 ? c.e : c.a) * 14 + c.heat * 25;
+  }
+
+  function addHeat(wx, wy, val) {
+    var gx = clamp(Math.floor(wx / CW), 0, G_COLS - 1), gy = clamp(Math.floor(wy / CH), 0, G_ROWS - 1);
+    infGrid[gy * G_COLS + gx].heat = clamp(infGrid[gy * G_COLS + gx].heat + val, 0, 30);
+  }
+
+  function getOverlappingWall(px, py, pad) {
+    for (var i = 0; i < walls.length; i++) {
+      var w = walls[i];
+      if (px + pad > w.x && px - pad < w.x + w.w && py + pad > w.y && py - pad < w.y + w.h) return w;
+    }
+    for (var j = 0; j < sandbags.length; j++) {
+      var s = sandbags[j];
+      if (s.hp > 0 && px + pad > s.x - 14 && px - pad < s.x + 14 && py + pad > s.y - 8 && py - pad < s.y + 8) return s;
+    }
+    return null;
+  }
+
+  function ensureClearPos(obj, pad) {
+    obj.x = clamp(obj.x, 35, W - 35);
+    obj.y = clamp(obj.y, 45, H - 45);
+    for (var iter = 0; iter < 4; iter++) {
+      var w = getOverlappingWall(obj.x, obj.y, pad);
+      if (!w) break;
+      var wX = w.w ? w.x : w.x - 14, wY = w.h ? w.y : w.y - 8;
+      var wW = w.w ? w.w : 28, wH = w.h ? w.h : 16;
+      var dLeft = (obj.x + pad) - wX;
+      var dRight = (wX + wW) - (obj.x - pad);
+      var dTop = (obj.y + pad) - wY;
+      var dBot = (wY + wH) - (obj.y - pad);
+      var minD = Math.min(dLeft, dRight, dTop, dBot);
+      if (minD === dLeft) obj.x = wX - pad - 2;
+      else if (minD === dRight) obj.x = wX + wW + pad + 2;
+      else if (minD === dTop) obj.y = wY - pad - 2;
+      else obj.y = wY + wH + pad + 2;
+    }
+  }
+
+  function claimCover(sq, wx, wy) {
+    sq.wx = clamp(wx, 60, W - 60); sq.wy = clamp(wy, 75, H - 75);
+    var safePt = { x: sq.wx, y: sq.wy };
+    ensureClearPos(safePt, 14);
+    sq.wx = safePt.x; sq.wy = safePt.y;
+
+    sq.members.forEach(function(m) { if (m.node) { m.node.occ = null; m.node = null; } });
+    var best = null, bestScore = -99999;
+    for (var i = 0; i < clusters.length; i++) {
+      var c = clusters[i], d = dist(sq.wx, sq.wy, c.x, c.y);
+      if (d > 240) continue;
+      var free = 0;
+      for (var k = 0; k < c.nodes.length; k++) if (!c.nodes[k].occ) free++;
+      if (free < 3) continue;
+      var sc = (240 - d) + c.bonus * 80 - getDanger(c.x, c.y, sq.team) * 0.5;
+      if (sc > bestScore) { bestScore = sc; best = c; }
+    }
+    sq.cluster = best;
+    if (!best) return;
+    sq.wx = best.x; sq.wy = best.y;
+    sq.members.forEach(function(m) {
+      if (m.st !== 0) return;
+      for (var j = 0; j < best.nodes.length; j++) {
+        if (!best.nodes[j].occ) { best.nodes[j].occ = m; m.node = best.nodes[j]; break; }
+      }
+    });
+  }
+
+  function segRectHit(x1, y1, x2, y2, rx, ry, rw, rh) {
+    var dx = x2 - x1, dy = y2 - y1, t0 = 0, t1 = 1;
+    var p = [-dx, dx, -dy, dy], q = [x1 - rx, rx + rw - x1, y1 - ry, ry + rh - y1];
+    for (var i = 0; i < 4; i++) {
+      if (p[i] === 0) { if (q[i] < 0) return null; }
+      else {
+        var t = q[i] / p[i];
+        if (p[i] < 0) { if (t > t1) return null; if (t > t0) t0 = t; }
+        else { if (t < t0) return null; if (t < t1) t1 = t; }
+      }
+    }
+    return t0 <= t1 ? t0 : null;
+  }
+
+  function traceWall(x1, y1, x2, y2) {
+    var bestT = 2, hx = x2, hy = y2, hitObj = null;
+    var minX = Math.min(x1, x2), maxX = Math.max(x1, x2), minY = Math.min(y1, y2), maxY = Math.max(y1, y2);
+    for (var i = 0; i < walls.length; i++) {
+      var w = walls[i];
+      if (maxX < w.x || minX > w.x + w.w || maxY < w.y || minY > w.y + w.h) continue;
+      var t = segRectHit(x1, y1, x2, y2, w.x, w.y, w.w, w.h);
+      if (t !== null && t < bestT) { bestT = t; hx = x1 + (x2 - x1) * t; hy = y1 + (y2 - y1) * t; hitObj = w; }
+    }
+    for (var j = 0; j < sandbags.length; j++) {
+      var s = sandbags[j];
+      if (s.hp <= 0) continue;
+      if (maxX < s.x - 14 || minX > s.x + 14 || maxY < s.y - 8 || minY > s.y + 8) continue;
+      var ts = segRectHit(x1, y1, x2, y2, s.x - 14, s.y - 8, 28, 16);
+      if (ts !== null && ts < bestT) { bestT = ts; hx = x1 + (x2 - x1) * ts; hy = y1 + (y2 - y1) * ts; hitObj = s; }
+    }
+    return bestT <= 1 ? { x: hx, y: hy, obj: hitObj } : null;
+  }
+
+  function pointToSegmentDistSq(px, py, x1, y1, x2, y2) {
+    var l2 = dSq(x1, y1, x2, y2);
+    if (l2 === 0) return dSq(px, py, x1, y1);
+    var t = clamp(((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2, 0, 1);
+    return dSq(px, py, x1 + t * (x2 - x1), y1 + t * (y2 - y1));
+  }
+
+  function buildMap() {
+    walls = []; roads = []; trenches = []; clusters = []; nodes = []; sandbags = [];
+    initGrid();
+
+    // 7 Sequential & Lateral Objectives across the Inverted Theatre (North Hills -> Zhonghua Gate -> City Centre)
+    flags = [
+      { id: 0, name: "F1 YUHUATAI OUTER RIDGE",  x: 1500, y: 650,  r: 155, own: 1, timer: -30.0, state: "AXIS" },
+      { id: 1, name: "F2 YUHUATAI HIGH GROUND", x: 1500, y: 1350, r: 165, own: 1, timer: -30.0, state: "AXIS" },
+      { id: 2, name: "F3 ZHONGHUA OUTER PLAZA", x: 1500, y: 2050, r: 155, own: 0, timer: 30.0,  state: "ALLIES" },
+      { id: 3, name: "F4 ZHONGHUA GATE BASTION",x: 1500, y: 2620, r: 165, own: 0, timer: 30.0,  state: "ALLIES" },
+      { id: 4, name: "F5 WEST ARSENAL COMPOUND",x: 820,  y: 3250, r: 150, own: 0, timer: 30.0,  state: "ALLIES" },
+      { id: 5, name: "F6 EAST COMMERCIAL WARD", x: 2180, y: 3250, r: 150, own: 0, timer: 30.0,  state: "ALLIES" },
+      { id: 6, name: "F7 NANJING CITY CENTRE",  x: 1500, y: 4050, r: 175, own: 0, timer: 30.0,  state: "ALLIES" }
+    ];
+
+    // Road Network connecting Hills, Zhonghua Gate breaches, and Urban Grid
+    roads = [
+      { x: 1330, y: 200,  w: 340, h: 4400 }, // Central Imperial Highway
+      { x: 520,  y: 1800, w: 150, h: 2800 }, // West Flank Avenue
+      { x: 2330, y: 1800, w: 150, h: 2800 }, // East Flank Avenue
+      { x: 200,  y: 1990, w: 2600, h: 120 }, // Outer Moat Road
+      { x: 200,  y: 2600, w: 2600, h: 130 }, // Inner Wall Boulevard
+      { x: 200,  y: 3190, w: 2600, h: 125 }, // Arsenal-Commercial Cross Street
+      { x: 200,  y: 3990, w: 2600, h: 140 }  // City Centre Grand Avenue
+    ];
+
+    // Yuhuatai Hill Trenches (Top/North Sector: Y = 520 to 1720)
+    [520, 820, 1120, 1450, 1740].forEach(function(ty, idx) {
+      var pts = [];
+      for (var x = 280; x <= 2720; x += 85) {
+        pts.push({ x: x, y: ty + Math.sin(x * 0.011 + idx * 1.3) * 28 });
+      }
+      trenches.push(pts);
+    });
+
+    // Pillboxes on Yuhuatai Hills & Zhonghua Gate Fortified City Wall (Y = 2380)
+    [
+      // Hill Bunkers
+      { x: 860,  y: 940,  w: 95, h: 42, t: 0 },
+      { x: 1452, y: 1180, w: 96, h: 42, t: 0 },
+      { x: 2045, y: 940,  w: 95, h: 42, t: 0 },
+      { x: 560,  y: 1580, w: 90, h: 38, t: 0 },
+      { x: 2350, y: 1580, w: 90, h: 38, t: 0 },
+      // Zhonghua Gate Massive City Wall (with 5 tactical breach/gate passages for 360 flanking)
+      { x: 0,    y: 2380, w: 490, h: 96, t: 1 },
+      { x: 690,  y: 2380, w: 380, h: 96, t: 1 },
+      { x: 1190, y: 2380, w: 130, h: 96, t: 1 },
+      { x: 1680, y: 2380, w: 130, h: 96, t: 1 },
+      { x: 1930, y: 2380, w: 380, h: 96, t: 1 },
+      { x: 2510, y: 2380, w: 490, h: 96, t: 1 }
+    ].forEach(function(b) { walls.push(b); });
+
+    // Nanjing Urban City Blocks (South of Zhonghua Gate: Y = 2760 to 4350)
+    [2770, 3380, 3720, 4180].forEach(function(ry, rIdx) {
+      [230, 720, 1020, 1780, 2080, 2560].forEach(function(cx, cIdx) {
+        walls.push({ x: cx, y: ry, w: 175, h: 155, t: 2, s: (rIdx + cIdx) % 2 });
+        if (rIdx < 2) {
+          walls.push({ x: cx, y: ry + 210, w: 175, h: 155, t: 2, s: (rIdx + cIdx + 1) % 2 });
+        }
+      });
+    });
+
+    // Dense 360-degree Tactical Cover Clusters across Hills, Gate, and Urban Streets
+    var rowYs = [380, 650, 920, 1200, 1480, 1760, 2050, 2290, 2560, 2880, 3250, 3600, 3920, 4250, 4520];
+    var colXs = [320, 595, 880, 1180, 1500, 1820, 2120, 2405, 2680];
+
+    var cIdx = 0;
+    for (var r = 0; r < rowYs.length; r++) {
+      var cy = rowYs[r];
+      var isHill = cy < 1900;
+      var isGate = Math.abs(cy - 2420) < 250;
+      for (var c = 0; c < colXs.length; c++) {
+        var cx = colXs[c] + ((r % 2) * 35 - 17);
+        if (getOverlappingWall(cx, cy, 32)) continue;
+        var bonus = isGate ? 0.74 : (isHill ? 0.68 : 0.60);
+        var cl = { id: cIdx++, x: cx, y: cy, bonus: bonus, nodes: [] };
+        for (var i = 0; i < 10; i++) {
+          var a = (i / 10) * Math.PI * 2 + (cIdx % 3) * 0.2, rad = 20 + (i % 3) * 9;
+          var nd = { x: cx + Math.cos(a) * rad, y: cy + Math.sin(a) * rad * 0.85, bonus: bonus, occ: null };
+          ensureClearPos(nd, 8);
+          cl.nodes.push(nd); nodes.push(nd);
+        }
+        clusters.push(cl);
+      }
+    }
+  }
+
+  /****************************************************************************
+   * 2. SQUAD CREATION, 3-SMOKE RULE & REINFORCEMENT WAVES
+   ****************************************************************************/
+  var SKIRMISH_OFFSETS = [
+    { fx: 0,   fy: 0 },
+    { fx: 16,  fy: -22 },
+    { fx: 16,  fy: 22 },
+    { fx: -10, fy: -38 },
+    { fx: -22, fy: 0 },
+    { fx: -10, fy: 38 },
+    { fx: 26,  fy: -46 },
+    { fx: 28,  fy: -8 },
+    { fx: 28,  fy: 12 },
+    { fx: 26,  fy: 46 }
+  ];
+
+  // Allies push North (uphill toward Yuhuatai) to reclaim lost flags, or defend the northernmost held flag
+  function getAlliedTargetFlag() {
+    for (var i = 0; i < flags.length; i++) {
+      if (flags[i].own !== 0) return flags[i];
+    }
+    return flags[0];
+  }
+
+  // Axis attackers push South (down Yuhuatai hills -> Zhonghua Gate -> City Centre)
+  function getAxisTargetFlag() {
+    for (var i = 0; i < flags.length; i++) {
+      if (flags[i].own !== 1) return flags[i];
+    }
+    return flags[flags.length - 1];
+  }
+
+  function spawnFX(x, y, maxR, color, speed) {
+    if (effects.length < 180) effects.push({ x: x, y: y, r: 2, maxR: maxR || 16, alpha: 1.0, color: color || "#ffaa33", speed: speed || 55 });
+  }
+  function spawnSmoke(x, y) {
+    if (smokes.length < 36) smokes.push({ x: x + rand(-10, 10), y: y + rand(-10, 10), r: 16, maxR: 80, life: 13.5 });
+  }
+  function throwFragGrenade(sx0, sy0, tx, ty, team) {
+    grenades.push({ x: sx0, y: sy0, sx: sx0, sy: sy0, tx: tx, ty: ty, team: team, t: 0, dur: 0.85 });
+  }
+  function clearLOS(x1, y1, x2, y2) {
+    for (var i = 0; i < smokes.length; i++) {
+      var sm = smokes[i];
+      if (pointToSegmentDistSq(sm.x, sm.y, x1, y1, x2, y2) < sm.r * sm.r) return false;
+    }
+    return traceWall(x1, y1, x2, y2) === null;
+  }
+
+  // factionType: "PLAYER" (Blue), "COPILOT" (Teal), "INDEPENDENT" (Gold/Purple Vanguard AI), "AXIS" (Red)
+  function createSquad(id, numLabel, team, factionType, x, y, isHmg, ord, lane) {
+    var sq = {
+      id: id,
+      name: String(numLabel),
+      team: team,
+      factionType: factionType,
+      isCopilot: factionType === "COPILOT",
+      isIndependent: factionType === "INDEPENDENT",
+      isHmg: isHmg,
+      order: ord,
+      lane: lane,
+      morale: 100,
+      supAvg: 0,
+      underAttackT: 0,
+      wx: x, wy: y,
+      ang: team === 0 ? -1.57 : 1.57, // Allies face North (-Y), Axis face South (+Y)
+      cluster: null,
+      members: [],
+      think: rand(0.1, 0.8),
+      smkCd: 0,
+      chargeT: 0,
+      trumpetPulse: 0
+    };
+    var roles = isHmg
+      ? ["SL","HMG","HMG","AP","MED","BUILD","R","R","R","R"]
+      : ["SL","MG","AP","AP","MED","BUILD","R","R","R","R"];
+    for (var i = 0; i < 10; i++) {
+      var off = SKIRMISH_OFFSETS[i];
+      // ONLY Squad Leader (i===0) and 2 other members (i===1, i===2) have a smoke bomb!
+      var hasSmokeKit = (i < 3);
+      var s = {
+        squad: sq, team: team, role: roles[i], slot: i,
+        x: x + off.fy, y: y + (team === 0 ? -off.fx : off.fx),
+        ang: sq.ang, st: 0, hp: SOLDIER_MAX_HP, bleed: 16, sup: 0,
+        node: null, inCov: false, tripod: false, statT: 0,
+        hasGrenade: true, hasSmoke: hasSmokeKit, hasBuildKit: true,
+        cd: rand(0.1, 0.8), grenCd: 0, burst: 0, tgt: null, recoil: 0, flash: 0,
+        boundPhase: rand(0, 6.28), wanderAngle: rand(-0.45, 0.45)
+      };
+      ensureClearPos(s, 7);
+      sq.members.push(s); soldiers.push(s);
+    }
+    claimCover(sq, x, y);
+    squads.push(sq);
+    return sq;
+  }
+
+  function spawnArmoredTank(team) {
+    // Axis tanks spawn at top of Yuhuatai Hills (Y: 280); Allied tanks spawn in Nanjing City Centre (Y: 4550)
+    var sy0 = team === 1 ? 280 : 4550;
+    var sx0 = 1500 + (tanks.length % 2 === 0 ? -80 : 80);
+    tanks.push({
+      team: team, x: sx0, y: sy0, lx: sx0,
+      ang: team === 1 ? 1.57 : -1.57, tAng: team === 1 ? 1.57 : -1.57,
+      hp: TANK_MAX_HP, maxHp: TANK_MAX_HP, alive: true,
+      cCd: 2.5, mCd: 0.2
+    });
+  }
+
+  function initBattle() {
+    squads = []; soldiers = []; tanks = []; grenades = []; smokes = []; effects = []; ripples = []; sandbags = [];
+    for (var i = 0; i < MAX_PROJ; i++) projectiles[i].active = false;
+    waveTimer = 90.0;
+    nextWaveTeam = 1; // Enemy team (Axis = 1) gets the first wave of reinforcements!
+    blueWaveCount = 0;
+    redWaveCount = 0;
+    nextSquadNum = 1;
+    buildMap();
+
+    // 8 Player Squads (Squads 1..8: Blue) defending Zhonghua Gate Plaza & City Wall
+    var playerCfg = [
+      [880,  2050, false, -1],
+      [1180, 2050, true,   0],
+      [1500, 2050, true,   0],
+      [1820, 2050, false,  0],
+      [2120, 2050, false,  1],
+      [1180, 2560, true,  -1],
+      [1500, 2560, false,  0],
+      [1820, 2560, false,  1]
+    ];
+    playerCfg.forEach(function(c, idx) {
+      createSquad(idx, nextSquadNum++, 0, "PLAYER", c[0], c[1], c[2], "HOLD", c[3]);
+    });
+
+    // 8 Allied Co-Pilot AI Squads (Squads 9..16: Teal) holding flanks & counterattacking
+    var allyCfg = [
+      [595,  2050, false, -1],
+      [2405, 2050, false,  1],
+      [595,  2560, true,  -1],
+      [2405, 2560, true,   1],
+      [880,  2880, false, -1],
+      [1500, 2880, true,   0],
+      [2120, 2880, false,  1],
+      [1500, 3250, false,  0]
+    ];
+    allyCfg.forEach(function(c, idx) {
+      createSquad(idx + 8, nextSquadNum++, 0, "COPILOT", c[0], c[1], c[2], "ADVANCE", c[3]);
+    });
+
+    // 16 Axis Attacker Squads (Squads 17..32: Red) advancing South down Yuhuatai Hills
+    var axCfg = [
+      [595,  650,  false, -1], [880,  650,  true,  -1], [1180, 650,  false,  0], [1500, 650,  true,   0],
+      [1820, 650,  false,  0], [2120, 650,  true,   1], [2405, 650,  false,  1], [880,  920,  false, -1],
+      [1500, 920,  true,   0], [2120, 920,  false,  1], [595,  1350, false, -1], [1050, 1350, true,   0],
+      [1500, 1350, false,  0], [1950, 1350, true,   0], [2405, 1350, false,  1], [1500, 1620, false,  0]
+    ];
+    axCfg.forEach(function(c) {
+      createSquad(squads.length, nextSquadNum++, 1, "AXIS", c[0], c[1], c[2], "ADVANCE", c[3]);
+    });
+
+    cam.x = 1500; cam.y = 2050; cam.z = 0.50; clampCam();
+    selectSquad(4, false);
+  }
+
+  function executeAlternatingWave() {
+    var team = nextWaveTeam;
+    var spawnedMen = 0;
+    var safeLanesX = [450, 780, 1120, 1500, 1880, 2220, 2550];
+    // Axis spawns at North Yuhuatai Ridge (Y: 260); Allies spawn at South Nanjing City Centre (Y: 4580)
+    var baseSpawnY = team === 1 ? 260 : 4580;
+    var targetFlag = team === 0 ? getAlliedTargetFlag() : getAxisTargetFlag();
+
+    // PART 1: 120 Personnel Reinforcements for existing team squads
+    for (var i = 0; i < squads.length; i++) {
+      var sq = squads[i];
+      if (sq.team !== team) continue;
+      var laneX = safeLanesX[i % safeLanesX.length];
+      var aliveCount = 0;
+
+      for (var j = 0; j < sq.members.length; j++) {
+        var m = sq.members[j];
+        m.hasGrenade = true;
+        m.hasSmoke = (j < 3); // Only SL + 2 members get smoke resupply
+        m.hasBuildKit = true;
+        if (m.st !== 0 && spawnedMen < 120) {
+          m.st = 0; m.hp = SOLDIER_MAX_HP; m.bleed = 16; m.sup = 0;
+          var off = SKIRMISH_OFFSETS[j % 10];
+          m.x = laneX + off.fy + rand(-14, 14);
+          m.y = baseSpawnY + off.fx + rand(-14, 14);
+          ensureClearPos(m, 8);
+          spawnedMen++;
+        } else if (m.st === 0) {
+          m.hp = SOLDIER_MAX_HP; m.sup = 0;
+        }
+        if (m.st === 0) aliveCount++;
+      }
+      sq.morale = 100;
+      if (sq.team === 1 || sq.isCopilot || sq.isIndependent || aliveCount > 0) {
+        if (sq.factionType !== "PLAYER" || selSq === -1) {
+          sq.order = "ADVANCE";
+        }
+      }
+    }
+
+    // If fewer than 120 fallen soldiers were revived, deploy remaining quota as new main squads
+    while (spawnedMen + 10 <= 120 && squads.length < 76) {
+      var extraX = safeLanesX[squads.length % safeLanesX.length] + rand(-40, 40);
+      var fType = team === 0 ? "COPILOT" : "AXIS";
+      var newSq = createSquad(squads.length, nextSquadNum++, team, fType, extraX, baseSpawnY + rand(-25, 25), (squads.length % 3 === 0), "ADVANCE", (squads.length % 3) - 1);
+      claimCover(newSq, targetFlag.x + rand(-260, 260), targetFlag.y + rand(-120, 120));
+      spawnedMen += 10;
+    }
+
+    // PART 2: +40 Extra Soldiers of 4 Independent New Teams controlled by the Independent Vanguard AI Leader!
+    var indSpawnsX = [680, 1220, 1780, 2320];
+    for (var k = 0; k < 4; k++) {
+      if (squads.length < 88) {
+        var indX = indSpawnsX[k] + rand(-35, 35);
+        var indY = baseSpawnY + (team === 1 ? 65 : -65);
+        var indSq = createSquad(
+          squads.length,
+          nextSquadNum++,
+          team,
+          "INDEPENDENT",
+          indX,
+          indY,
+          (k === 1),
+          "ADVANCE",
+          k - 1.5
+        );
+        claimCover(indSq, targetFlag.x + (k - 1.5) * 220, targetFlag.y);
+      }
+    }
+
+    if (team === 0) {
+      blueWaveCount++;
+      if (blueWaveCount >= 2) spawnArmoredTank(0);
+    } else {
+      redWaveCount++;
+      if (redWaveCount >= 2) spawnArmoredTank(1);
+    }
+
+    ripples.push({ x: 1500, y: baseSpawnY, r: 24, a: 1.0 });
+    nextWaveTeam = 1 - nextWaveTeam;
+    waveTimer = 90.0;
+  }
+
+  function setSquadOrder(sq, ord) {
+    var l = sq.members.find(function(m) { return m.st === 0; });
+    if (!l) return;
+    sq.order = ord;
+    if (ord === "FALLBACK") {
+      // Allies retreat South (+Y toward City Centre); Axis retreat North (-Y up Yuhuatai Hills)
+      var ry = sq.team === 0 ? Math.min(H - 180, l.y + 300) : Math.max(220, l.y - 300);
+      claimCover(sq, l.x + rand(-80, 80), ry);
+      var smoker = sq.members.find(function(m) { return m.st === 0 && m.hasSmoke; });
+      if (smoker) {
+        smoker.hasSmoke = false;
+        spawnSmoke(l.x + Math.cos(sq.ang) * 65, l.y + Math.sin(sq.ang) * 65);
+      }
+    } else if (ord === "HOLD") {
+      claimCover(sq, l.x, l.y);
+    } else if (ord === "ASSAULT_FLAG") {
+      var flg = sq.team === 0 ? getAlliedTargetFlag() : getAxisTargetFlag();
+      claimCover(sq, flg.x + rand(-180, 180), flg.y + rand(-80, 80));
+    }
+  }
+
+  /****************************************************************************
+   * 3. 360-DEGREE COHESIVE & MUTUAL-SUPPORT TACTICAL AI ENGINE
+   ****************************************************************************/
+  var STEER_ANGLES = [0, 0.45, -0.45, 0.95, -0.95, 1.45, -1.45, 2.0, -2.0];
+
+  function moveSoldierTactically(s, goalX, goalY, spd, dt) {
+    var dx = goalX - s.x, dy = goalY - s.y;
+    var distG = Math.sqrt(dx * dx + dy * dy);
+    if (distG < 4) return;
+    var baseAng = Math.atan2(dy, dx);
+    s.boundPhase += dt * 3.2;
+    if (distG > 35) {
+      baseAng += Math.sin(s.boundPhase + s.slot) * 0.22 + s.wanderAngle * 0.28;
+    }
+    var chosenAng = baseAng;
+    var lookAhead = Math.min(30, distG);
+    for (var i = 0; i < STEER_ANGLES.length; i++) {
+      var testAng = baseAng + STEER_ANGLES[i];
+      var tx = s.x + Math.cos(testAng) * lookAhead;
+      var ty = s.y + Math.sin(testAng) * lookAhead;
+      if (!getOverlappingWall(tx, ty, 7)) { chosenAng = testAng; break; }
+    }
+    var sepX = 0, sepY = 0;
+    for (var j = 0; j < s.squad.members.length; j++) {
+      var m = s.squad.members[j];
+      if (m !== s && m.st === 0) {
+        var ox = s.x - m.x, oy = s.y - m.y, odSq = ox * ox + oy * oy;
+        if (odSq > 0.01 && odSq < 22 * 22) {
+          var inv = 1 / Math.sqrt(odSq);
+          sepX += ox * inv * 28; sepY += oy * inv * 28;
+        }
+      }
+    }
+    var vx = Math.cos(chosenAng) * spd + sepX;
+    var vy = Math.sin(chosenAng) * spd + sepY;
+    s.x += vx * dt; s.y += vy * dt;
+    ensureClearPos(s, 6);
+  }
+
+  // Smart 360-degree Tactical AI Decision Maker:
+  // Evaluates Objectives, Mutual Support for allies under attack, Squad Cohesion, and Wall Gates
+  function computeTacticalWaypoint(sq, lead) {
+    var flg = sq.team === 0 ? getAlliedTargetFlag() : getAxisTargetFlag();
+
+    // 1. Check if a nearby friendly squad is under heavy attack / pinned and needs support!
+    var distressedAlly = null, bestDistressScore = 0;
+    for (var i = 0; i < squads.length; i++) {
+      var other = squads[i];
+      if (other === sq || other.team !== sq.team) continue;
+      var ol = other.members.find(function(m) { return m.st === 0; });
+      if (!ol) continue;
+      var dAlly = dist(lead.x, lead.y, ol.x, ol.y);
+      if (dAlly > 90 && dAlly < 720 && (other.supAvg > 0.38 || other.underAttackT > 0)) {
+        var score = (other.supAvg * 120 + (other.underAttackT > 0 ? 55 : 0)) - dAlly * 0.08;
+        if (score > bestDistressScore) {
+          bestDistressScore = score;
+          distressedAlly = ol;
+        }
+      }
+    }
+
+    var goalX = flg.x, goalY = flg.y;
+    var isSupporting = false;
+
+    if (distressedAlly && (sq.isIndependent || Math.random() < 0.65)) {
+      // Vector to flank/support the embattled friendly squad
+      var flankAngle = sq.ang + (sq.id % 2 === 0 ? 0.85 : -0.85);
+      goalX = distressedAlly.x + Math.cos(flankAngle) * 145;
+      goalY = distressedAlly.y + Math.sin(flankAngle) * 145;
+      isSupporting = true;
+    } else {
+      // Contest the most needed objective or secondary threatened flag
+      var bestFlag = flg, minFlagScore = 999999;
+      for (var f = 0; f < flags.length; f++) {
+        var candF = flags[f];
+        var needsAction = (sq.team === 0 && (candF.own !== 0 || candF.state === "CONTESTED")) ||
+                          (sq.team === 1 && (candF.own !== 1 || candF.state === "CONTESTED"));
+        if (needsAction) {
+          var df = dist(lead.x, lead.y, candF.x, candF.y);
+          // Independent AI squads love flanking side objectives (F5/F6) or contested flags
+          var priorityBias = (sq.isIndependent && candF.state === "CONTESTED") ? -350 : 0;
+          var fScore = df + priorityBias + (sq.team === 1 ? candF.y * 0.15 : -candF.y * 0.15);
+          if (fScore < minFlagScore) { minFlagScore = fScore; bestFlag = candF; }
+        }
+      }
+      goalX = bestFlag.x; goalY = bestFlag.y;
+    }
+
+    // 2. Navigate Zhonghua Gate City Wall (Y: 2380) cleanly via nearest breach/gate if crossing it
+    var wallY = 2425;
+    if ((lead.y < wallY - 60 && goalY > wallY + 60) || (lead.y > wallY + 60 && goalY < wallY - 60)) {
+      var gatesX = [590, 1130, 1500, 1870, 2420];
+      var bestGateX = 1500, minGateCost = Infinity;
+      for (var g = 0; g < gatesX.length; g++) {
+        var gx = gatesX[g];
+        var gCost = Math.abs(lead.x - gx) + Math.abs(goalX - gx) * 0.4 + getDanger(gx, wallY, sq.team) * 2.5;
+        if (gCost < minGateCost) { minGateCost = gCost; bestGateX = gx; }
+      }
+      goalX = bestGateX + rand(-45, 45);
+      goalY = lead.y < wallY ? wallY + 110 : wallY - 110;
+    }
+
+    // 3. Evaluate candidate cover clusters in a 360-degree radius (up to 420px step)
+    var toGoalX = goalX - lead.x, toGoalY = goalY - lead.y;
+    var distToGoal = Math.sqrt(toGoalX * toGoalX + toGoalY * toGoalY);
+    var dirX = distToGoal > 1 ? toGoalX / distToGoal : 0;
+    var dirY = distToGoal > 1 ? toGoalY / distToGoal : (sq.team === 1 ? 1 : -1);
+
+    var stepDist = Math.min(280, Math.max(120, distToGoal * 0.65));
+    var idealX = lead.x + dirX * stepDist;
+    var idealY = lead.y + dirY * stepDist;
+
+    var bestCluster = null, bestCScore = -999999;
+    for (var cI = 0; cI < clusters.length; cI++) {
+      var cl = clusters[cI];
+      var dFromLead = dist(lead.x, lead.y, cl.x, cl.y);
+      if (dFromLead > 420) continue;
+
+      var dFromIdeal = dist(idealX, idealY, cl.x, cl.y);
+      var dFromGoal = dist(goalX, goalY, cl.x, cl.y);
+      var danger = getDanger(cl.x, cl.y, sq.team);
+
+      // Cohesion check: stay within mutual support range (135..380px) of other friendly squads without crowding (<115px)
+      var cohesionBonus = 0;
+      for (var sJ = 0; sJ < squads.length; sJ++) {
+        var allySq = squads[sJ];
+        if (allySq === sq || allySq.team !== sq.team) continue;
+        var dWp = dist(cl.x, cl.y, allySq.wx, allySq.wy);
+        if (dWp < 115) cohesionBonus -= 140; // Avoid stacking on the exact same cluster
+        else if (dWp >= 130 && dWp <= 360) cohesionBonus += 42; // Mutual support formation bonus!
+      }
+
+      var progressGain = distToGoal - dFromGoal;
+      var score = progressGain * 0.95
+                - dFromIdeal * 0.55
+                + cl.bonus * 90
+                + cohesionBonus
+                - danger * (isSupporting ? 0.6 : 1.35)
+                + rand(-18, 18);
+
+      if (score > bestCScore) {
+        bestCScore = score;
+        bestCluster = cl;
+      }
+    }
+
+    if (bestCluster) {
+      claimCover(sq, bestCluster.x, bestCluster.y);
+    } else {
+      claimCover(sq, idealX + rand(-60, 60), idealY + rand(-60, 60));
+    }
+  }
+
+  function updateSim(dt) {
+    updateGrid(dt);
+    waveTimer -= dt;
+    if (waveTimer <= 0) { executeAlternatingWave(); }
+
+    // 1. Update All Squads
+    for (var i = 0; i < squads.length; i++) {
+      var sq = squads[i];
+      if (sq.smkCd > 0) sq.smkCd -= dt;
+      if (sq.chargeT > 0) sq.chargeT -= dt;
+      if (sq.trumpetPulse > 0) sq.trumpetPulse -= dt;
+      if (sq.underAttackT > 0) sq.underAttackT -= dt;
+
+      var lead = null, supSum = 0, alv = 0;
+      for (var mIdx = 0; mIdx < sq.members.length; mIdx++) {
+        var m = sq.members[mIdx];
+        if (m.st === 0) { if (!lead) { lead = m; m.role = "SL"; } supSum += m.sup; alv++; }
+      }
+      if (!lead) continue;
+      sq.supAvg = alv > 0 ? supSum / alv : 0;
+      sq.morale = clamp(sq.morale + (sq.supAvg < 0.35 ? 3.5 : (sq.supAvg > 0.65 ? -6.5 : 0)) * dt, 0, 100);
+
+      // Sound Bayonet Trumpet Charge when Morale > 85
+      if (sq.morale > 85 && sq.chargeT <= 0 && sq.order === "ADVANCE" && Math.random() < 0.006) {
+        var localD = getDanger(lead.x, lead.y, sq.team);
+        if (localD < 24) {
+          sq.chargeT = 7.5;
+          sq.trumpetPulse = 2.0;
+          spawnFX(lead.x, lead.y, 48, "rgba(245, 176, 65, 0.45)", 42);
+        }
+      }
+
+      var isAIControlled = (sq.team === 1) || sq.isIndependent || (sq.isCopilot && copilotOn);
+
+      if (sq.morale < 22 && sq.order !== "FALLBACK") setSquadOrder(sq, "FALLBACK");
+      else if (sq.morale > 65 && sq.order === "FALLBACK" && isAIControlled) sq.order = "ADVANCE";
+
+      sq.think -= dt;
+      if (sq.think > 0) continue;
+      sq.think = rand(0.95, 1.35);
+
+      // Orient squad toward nearest visible or known enemy squad
+      var tx = 1500, ty = sq.team === 0 ? 650 : 4050, minDSq = Infinity;
+      for (var j = 0; j < squads.length; j++) {
+        var oSq = squads[j];
+        if (oSq.team !== sq.team) {
+          var ol = oSq.members.find(function(k) { return k.st === 0; });
+          if (ol) {
+            var d = dSq(lead.x, lead.y, ol.x, ol.y);
+            if (d < minDSq) { minDSq = d; tx = ol.x; ty = ol.y; }
+          }
+        }
+      }
+      sq.ang = Math.atan2(ty - lead.y, tx - lead.x);
+
+      if (isAIControlled) {
+        if (sq.order === "FALLBACK") continue;
+
+        // Tactical smoke deployment when pinned
+        if (sq.supAvg > 0.52 && sq.smkCd <= 0) {
+          var smkMember = sq.members.find(function(m) { return m.st === 0 && m.hasSmoke; });
+          if (smkMember) {
+            smkMember.hasSmoke = false;
+            sq.smkCd = 11.0;
+            spawnSmoke(lead.x + Math.cos(sq.ang) * 55, lead.y + Math.sin(sq.ang) * 55);
+          }
+        }
+
+        sq.order = "ADVANCE";
+        computeTacticalWaypoint(sq, lead);
+      }
+    }
+
+    // 2. Update Tanks
+    for (var tI = 0; tI < tanks.length; tI++) {
+      var tk = tanks[tI];
+      if (!tk.alive) continue;
+      var tgtF = tk.team === 0 ? getAlliedTargetFlag() : getAxisTargetFlag();
+      var dxT = tgtF.x - tk.x, dyT = tgtF.y - tk.y;
+      var distT = Math.sqrt(dxT * dxT + dyT * dyT);
+      if (distT > 85) {
+        var moveA = Math.atan2(dyT, dxT);
+        var nx = tk.x + Math.cos(moveA) * 12.0 * dt;
+        var ny = tk.y + Math.sin(moveA) * 12.0 * dt;
+        if (!getOverlappingWall(nx, ny, 20)) { tk.x = nx; tk.y = ny; }
+      }
+      var tTgt = null, bestTD = 480 * 480;
+      for (var sI0 = 0; sI0 < soldiers.length; sI0++) {
+        var es = soldiers[sI0];
+        if (es.team !== tk.team && es.st === 0) {
+          var td = dSq(tk.x, tk.y, es.x, es.y);
+          if (td < bestTD && clearLOS(tk.x, tk.y, es.x, es.y)) { bestTD = td; tTgt = es; }
+        }
+      }
+      if (tTgt) {
+        var aimT = Math.atan2(tTgt.y - tk.y, tTgt.x - tk.x);
+        tk.tAng += clamp(normAng(aimT - tk.tAng), -1.5 * dt, 1.5 * dt);
+        tk.mCd -= dt;
+        if (tk.mCd <= 0) { fireBullet(tk.x, tk.y, tk.tAng + rand(-0.06, 0.06), 500, tk.team, 22, 0.28, false, 0.9); tk.mCd = 0.18; }
+        tk.cCd -= dt;
+        if (tk.cCd <= 0) { fireBullet(tk.x, tk.y, tk.tAng + rand(-0.02, 0.02), 380, tk.team, 95, 0.85, true, 1.15); tk.cCd = rand(3.6, 5.0); }
+      }
+    }
+
+    // 3. Update All Soldiers
+    for (var sIdx = 0; sIdx < soldiers.length; sIdx++) {
+      var s = soldiers[sIdx];
+      if (s.st === 2) continue;
+      if (s.recoil > 0) s.recoil = Math.max(0, s.recoil - 16 * dt);
+      if (s.flash > 0) s.flash -= dt;
+
+      if (s.st === 1) {
+        s.bleed -= dt;
+        if (s.bleed <= 0) {
+          s.st = 2; if (s.node) { s.node.occ = null; s.node = null; }
+          s.squad.morale = clamp(s.squad.morale - 7, 0, 100);
+        }
+        continue;
+      }
+
+      s.sup = clamp(s.sup - (s.inCov ? 0.25 : 0.12) * dt, 0, 1);
+
+      // Bayonet charging melee damage
+      if (s.squad.chargeT > 0) {
+        for (var nSol = 0; nSol < soldiers.length; nSol++) {
+          var opp = soldiers[nSol];
+          if (opp.team !== s.team && opp.st === 0 && dSq(s.x, s.y, opp.x, opp.y) < 16 * 16) {
+            opp.st = 2;
+            opp.squad.morale = clamp(opp.squad.morale - 12, 0, 100);
+            opp.squad.underAttackT = 6.0;
+            spawnFX(opp.x, opp.y, 20, "#ff3b30", 50);
+          }
+        }
+      }
+
+      // Builders place destructible sandbags when holding or defending
+      if (s.role === "BUILD" && s.hasBuildKit && (s.squad.order === "HOLD" || s.inCov) && s.squad.morale > 40 && Math.random() < 0.02) {
+        s.hasBuildKit = false;
+        var sAngle = s.squad.ang;
+        var placeX = s.x + Math.cos(sAngle) * 22;
+        var placeY = s.y + Math.sin(sAngle) * 22;
+        if (!getOverlappingWall(placeX, placeY, 12)) {
+          sandbags.push({ x: placeX, y: placeY, hp: 5 });
+          spawnFX(placeX, placeY, 14, "#c2b280", 25);
+        }
+      }
+
+      // Self-preservation smoke (only SL + 2 members have hasSmoke = true)
+      if (s.hasSmoke && s.sup > 0.62 && Math.random() < 0.035) {
+        s.hasSmoke = false;
+        spawnSmoke(s.x + Math.cos(s.ang) * 55, s.y + Math.sin(s.ang) * 55);
+      }
+
+      // Field Medic revives downed squadmates
+      if (s.role === "MED") {
+        var pat = null, minPD = Infinity;
+        for (var pI = 0; pI < s.squad.members.length; pI++) {
+          var m2 = s.squad.members[pI];
+          if (m2.st === 1) {
+            var pd = dSq(s.x, s.y, m2.x, m2.y);
+            if (pd < minPD) { minPD = pd; pat = m2; }
+          }
+        }
+        if (pat) {
+          if (minPD > 15 * 15) moveSoldierTactically(s, pat.x, pat.y, 76, dt);
+          else {
+            pat.st = 0; pat.hp = SOLDIER_MAX_HP; pat.bleed = 16; pat.sup = 0.2;
+            s.squad.morale = clamp(s.squad.morale + 5, 0, 100);
+            spawnFX(pat.x, pat.y, 12, "#58d68d", 40);
+          }
+          continue;
+        }
+      }
+
+      var lead = s.squad.members.find(function(m) { return m.st === 0; }) || s;
+      var destX = s.squad.wx, destY = s.squad.wy;
+      if (s.node) {
+        destX = s.node.x; destY = s.node.y;
+      } else if (s !== lead) {
+        var off = SKIRMISH_OFFSETS[s.slot % 10];
+        var cosA = Math.cos(s.squad.ang), sinA = Math.sin(s.squad.ang);
+        var anchorX = dist(lead.x, lead.y, s.squad.wx, s.squad.wy) > 120 ? (lead.x * 0.6 + s.squad.wx * 0.4) : s.squad.wx;
+        var anchorY = dist(lead.x, lead.y, s.squad.wx, s.squad.wy) > 120 ? (lead.y * 0.6 + s.squad.wy * 0.4) : s.squad.wy;
+        destX = anchorX + (off.fx * cosA - off.fy * sinA);
+        destY = anchorY + (off.fx * sinA + off.fy * cosA);
+      }
+
+      var distG = dist(s.x, s.y, destX, destY);
+      s.inCov = Boolean(s.node && distG < 14);
+
+      var boundingPause = false;
+      if (s.tgt && distG > 25 && s.squad.order === "ADVANCE" && s.role !== "SL") {
+        boundingPause = Math.sin(s.boundPhase + (s.slot % 2) * 3.14) > 0.55;
+      }
+
+      var pinned = s.sup > 0.78 && s.squad.order !== "FALLBACK";
+      var spd = s.role === "HMG" ? 38 : (s.role === "MG" ? 52 : 66);
+      if (s.squad.order === "FALLBACK") spd *= 1.18;
+      if (s.squad.chargeT > 0) spd *= 1.40;
+      if (s.sup > 0.35 && s.squad.chargeT <= 0) spd *= (1 - s.sup * 0.45);
+
+      if (distG > 6 && !boundingPause && !(pinned && s.inCov && s.squad.chargeT <= 0)) {
+        s.statT = 0; s.tripod = false;
+        moveSoldierTactically(s, destX, destY, spd, dt);
+      } else {
+        s.statT += dt;
+        if (s.role === "HMG" && s.statT >= 1.1) s.tripod = true;
+      }
+
+      if ((s.sup > 0.84 && s.squad.chargeT <= 0) || (s.role === "HMG" && !s.tripod)) continue;
+
+      s.cd -= dt;
+      if (s.role === "AP") s.grenCd -= dt;
+      if (s.cd > 0) continue;
+
+      var maxR = s.role === "HMG" ? 650 : (s.role === "MG" ? 480 : 395);
+      if (!s.tgt || s.tgt.st !== 0 || Math.random() < 0.25) {
+        s.tgt = null; var bestSc = maxR * maxR;
+        for (var eI = 0; eI < soldiers.length; eI++) {
+          var en = soldiers[eI];
+          if (en.team !== s.team && en.st === 0) {
+            var ed = dSq(s.x, s.y, en.x, en.y);
+            if (ed < bestSc && clearLOS(s.x, s.y, en.x, en.y)) { bestSc = ed; s.tgt = en; }
+          }
+        }
+      }
+
+      var nearTank = null;
+      for (var tkI = 0; tkI < tanks.length; tkI++) {
+        var etk = tanks[tkI];
+        if (etk.alive && etk.team !== s.team && dSq(s.x, s.y, etk.x, etk.y) < 220 * 220) {
+          nearTank = etk; break;
+        }
+      }
+      if (nearTank && (s.hasGrenade || s.role === "AP")) {
+        s.hasGrenade = false;
+        throwFragGrenade(s.x, s.y, nearTank.x + rand(-12, 12), nearTank.y + rand(-12, 12), s.team);
+        s.cd = 2.8;
+        continue;
+      }
+
+      if (!s.tgt) { s.cd = 0.32; continue; }
+
+      var aim = Math.atan2(s.tgt.y - s.y, s.tgt.x - s.x);
+      s.ang = aim;
+      var dEnemySq = dSq(s.x, s.y, s.tgt.x, s.tgt.y);
+      if (s.hasGrenade && dEnemySq < 195 * 195 && dEnemySq > 45 * 45 && Math.random() < 0.35) {
+        s.hasGrenade = false;
+        throwFragGrenade(s.x, s.y, s.tgt.x + rand(-18, 18), s.tgt.y + rand(-18, 18), s.team);
+        s.cd = 1.1;
+        continue;
+      }
+
+      var sway = (s.role === "HMG" ? 0.03 : 0.045) + s.sup * 0.15;
+      var shotA = aim + rand(-sway, sway);
+      s.recoil = 3.5; s.flash = 0.06;
+
+      if (s.role === "HMG") {
+        fireBullet(s.x, s.y, shotA, 610, s.team, 28, 0.36, false, 1.08);
+        if (s.burst > 0) { s.burst--; s.cd = 0.075; } else { s.burst = 7; s.cd = rand(0.75, 1.25); }
+      } else if (s.role === "MG") {
+        fireBullet(s.x, s.y, shotA, 550, s.team, 24, 0.25, false, 0.92);
+        if (s.burst > 0) { s.burst--; s.cd = 0.095; } else { s.burst = 4; s.cd = rand(1.1, 1.6); }
+      } else {
+        fireBullet(s.x, s.y, shotA, 550, s.team, 36, 0.14, false, 0.80);
+        s.cd = rand(0.85, 1.45);
+      }
+    }
+
+    // 4. Update Frag Grenades
+    for (var gIdx = grenades.length - 1; gIdx >= 0; gIdx--) {
+      var gr = grenades[gIdx]; gr.t += dt;
+      var pRatio = clamp(gr.t / gr.dur, 0, 1);
+      gr.x = gr.sx + (gr.tx - gr.sx) * pRatio; gr.y = gr.sy + (gr.ty - gr.sy) * pRatio;
+      if (gr.t >= gr.dur) {
+        spawnFX(gr.tx, gr.ty, 32, "#ff661a", 75);
+        for (var gsI = 0; gsI < soldiers.length; gsI++) {
+          var gs = soldiers[gsI];
+          if (gs.st === 0 && dSq(gr.tx, gr.ty, gs.x, gs.y) < 42 * 42) {
+            gs.sup = clamp(gs.sup + 0.8, 0, 1); gs.hp -= 85;
+            gs.squad.underAttackT = 6.0;
+            if (gs.hp <= 0) { gs.st = Math.random() < 0.65 ? 1 : 2; addHeat(gs.x, gs.y, 1.5); }
+          }
+        }
+        for (var gtkI = 0; gtkI < tanks.length; gtkI++) {
+          var gtk = tanks[gtkI];
+          if (gtk.alive && gtk.team !== gr.team && dSq(gr.tx, gr.ty, gtk.x, gtk.y) < 46 * 46) {
+            gtk.hp -= 160; spawnFX(gtk.x, gtk.y, 28, "#ff3b30", 75);
+            if (gtk.hp <= 0) { gtk.alive = false; spawnSmoke(gtk.x, gtk.y); }
+          }
+        }
+        grenades.splice(gIdx, 1);
+      }
+    }
+
+    // 5. Step Projectiles
+    var activeProj = 0;
+    for (var bI = 0; bI < MAX_PROJ; bI++) {
+      var p = projectiles[bI];
+      if (!p.active) continue;
+      p.prevX = p.x; p.prevY = p.y;
+      var nx = p.x + p.vx * dt, ny = p.y + p.vy * dt;
+      p.life -= dt;
+      if (p.life <= 0 || nx < 0 || nx > W || ny < 0 || ny > H) { p.active = false; continue; }
+
+      var wh = traceWall(p.prevX, p.prevY, nx, ny);
+      if (wh) {
+        if (wh.obj && wh.obj.hp !== undefined) {
+          wh.obj.hp--;
+          spawnFX(wh.x, wh.y, 12, "#c2b280", 40);
+        } else {
+          spawnFX(wh.x, wh.y, p.isShell ? 26 : 5, p.isShell ? "#ff661a" : "#d5cbb8", 50);
+        }
+        p.active = false; continue;
+      }
+
+      p.x = nx; p.y = ny; activeProj++;
+
+      var hitTank = false;
+      for (var tIdx = 0; tIdx < tanks.length; tIdx++) {
+        var tk2 = tanks[tIdx];
+        if (tk2.alive && tk2.team !== p.team && dSq(p.x, p.y, tk2.x, tk2.y) < 22 * 22) {
+          tk2.hp -= p.isShell ? p.dmg : p.dmg * 0.25;
+          if (Math.random() < 0.35) spawnFX(p.x, p.y, 6, "#ffe680", 40);
+          if (tk2.hp <= 0) { tk2.alive = false; spawnFX(tk2.x, tk2.y, 55, "#ff5500", 85); spawnSmoke(tk2.x, tk2.y); }
+          p.active = false; hitTank = true; break;
+        }
+      }
+      if (hitTank) continue;
+
+      for (var j = 0; j < soldiers.length; j++) {
+        var sol = soldiers[j];
+        if (sol.team === p.team || sol.st !== 0) continue;
+        if (Math.abs(sol.x - p.x) > 32 || Math.abs(sol.y - p.y) > 32) continue;
+        var sdSq = pointToSegmentDistSq(sol.x, sol.y, p.prevX, p.prevY, p.x, p.y);
+        if (sdSq < 28 * 28) {
+          sol.sup = clamp(sol.sup + p.supPower * (sol.inCov ? 0.48 : 1.0), 0, 1);
+          sol.squad.underAttackT = 5.0; // Alert nearby friendly squads that this unit is taking fire!
+        }
+        if (sdSq < (p.isShell ? 22 * 22 : 7.5 * 7.5)) {
+          if (p.isShell) spawnFX(p.x, p.y, 30, "#ff661a", 70);
+          else spawnFX(p.x, p.y, 6, "#c0392b", 45);
+          // Yuhuatai Hills elevation advantage (Top of map: Y < 1800)
+          var hillAdv = sol.y < 1800 ? 0.14 : 0;
+          var save = sol.inCov && sol.node ? sol.node.bonus : 0.06;
+          if (Math.random() > clamp(save + hillAdv, 0, 0.85) || p.isShell) {
+            sol.hp -= p.dmg;
+            if (sol.hp <= 0) {
+              sol.st = Math.random() < 0.70 ? 1 : 2;
+              sol.bleed = 16.0;
+              sol.squad.morale = clamp(sol.squad.morale - (sol.role === "SL" ? 14 : 6), 0, 100);
+              addHeat(sol.x, sol.y, 1.5);
+            }
+          }
+          p.active = false; break;
+        }
+      }
+    }
+
+    // 6. Update 7 Objectives (F1..F7)
+    for (var fI = 0; fI < flags.length; fI++) {
+      var fl = flags[fI], cAllies = 0, cAxis = 0, rSq = fl.r * fl.r;
+      for (var k = 0; k < soldiers.length; k++) {
+        var fs = soldiers[k];
+        if (fs.st === 0 && dSq(fs.x, fs.y, fl.x, fl.y) <= rSq) {
+          if (fs.team === 0) cAllies++; else cAxis++;
+        }
+      }
+      if (cAllies > 0 && cAxis === 0) {
+        fl.timer = clamp(fl.timer + dt, -30.0, 30.0);
+        fl.state = fl.own === 0 ? "ALLIES" : "CAPTURING (ALLIES)";
+        if (fl.timer >= 30.0) { fl.own = 0; fl.state = "ALLIES"; }
+      } else if (cAxis > 0 && cAllies === 0) {
+        fl.timer = clamp(fl.timer - dt, -30.0, 30.0);
+        fl.state = fl.own === 1 ? "AXIS" : "CAPTURING (AXIS)";
+        if (fl.timer <= -30.0) { fl.own = 1; fl.state = "AXIS"; }
+      } else if (cAllies > 0 && cAxis > 0) {
+        fl.state = "CONTESTED";
+      } else {
+        fl.state = fl.own === 0 ? "ALLIES" : "AXIS";
+      }
+    }
+
+    for (var eI2 = effects.length - 1; eI2 >= 0; eI2--) {
+      var ef = effects[eI2]; ef.r += ef.speed * dt; ef.alpha -= 2.6 * dt;
+      if (ef.alpha <= 0 || ef.r >= ef.maxR) effects.splice(eI2, 1);
+    }
+    for (var smI = smokes.length - 1; smI >= 0; smI--) {
+      var sm = smokes[smI]; sm.life -= dt; sm.r = Math.min(sm.maxR, sm.r + 22 * dt);
+      if (sm.life <= 0) smokes.splice(smI, 1);
+    }
+    for (var rpI = ripples.length - 1; rpI >= 0; rpI--) {
+      var rp = ripples[rpI]; rp.r += 65 * dt; rp.a -= 1.8 * dt;
+      if (rp.a <= 0) ripples.splice(rpI, 1);
+    }
+
+    return activeProj;
+  }
+
+  /****************************************************************************
+   * 4. 2D CAMERA RENDERER & MINIMAP
+   ****************************************************************************/
+  function getSquadColor(sq) {
+    if (sq.team === 1) {
+      return sq.isIndependent ? "#bb8fce" : "#d9463e"; // Purple for Independent Axis Vanguard, Red for main Axis
+    }
+    if (sq.isIndependent) return "#f4d03f"; // Gold for Independent Allied Vanguard AI Leader
+    if (sq.isCopilot) return "#38b2ac";     // Teal for Co-Pilot Allies (9-16)
+    return "#3a8ee6";                       // Blue for Player Squads (1-8)
+  }
+
+  function renderScene(nowSec) {
+    resize();
+    var z = cam.z;
+    ctx.fillStyle = "#2b3322";
+    ctx.fillRect(0, 0, sw, sh);
+
+    // YUHUATAI TOPOGRAPHIC HILL CONTOURS (Top/North Sector: Y = 1100)
+    var hx = sx(1500), hy = sy(1050);
+    if (hy > -1200 * z && hy < sh + 1200 * z) {
+      [1050, 820, 590, 360].forEach(function(r, idx) {
+        ctx.fillStyle = ["#323b26","#39442c","#414d33","#4a583a"][idx];
+        ctx.beginPath(); ctx.arc(hx, hy, r * z, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "rgba(215,205,160,0.18)"; ctx.lineWidth = 2; ctx.stroke();
+      });
+      trenches.forEach(function(pts) {
+        ctx.beginPath();
+        pts.forEach(function(p, i) { if (i === 0) ctx.moveTo(sx(p.x), sy(p.y)); else ctx.lineTo(sx(p.x), sy(p.y)); });
+        ctx.strokeStyle = "#1c1913"; ctx.lineWidth = Math.max(3, 12 * z); ctx.stroke();
+        ctx.strokeStyle = "#6e6246"; ctx.lineWidth = Math.max(1, 3 * z); ctx.stroke();
+      });
+    }
+
+    // ROADS
+    ctx.fillStyle = "#3a3935";
+    for (var rI = 0; rI < roads.length; rI++) {
+      var rd = roads[rI]; ctx.fillRect(sx(rd.x), sy(rd.y), rd.w * z, rd.h * z);
+    }
+
+    // DESTRUCTIBLE SANDBAG DEFENSE LINES
+    for (var sbI = 0; sbI < sandbags.length; sbI++) {
+      var sb = sandbags[sbI];
+      if (sb.hp <= 0) continue;
+      var sbX = sx(sb.x), sbY = sy(sb.y);
+      ctx.fillStyle = sb.hp > 2 ? "#d0b080" : "#a68d67";
+      ctx.fillRect(sbX - 14 * z, sbY - 8 * z, 28 * z, 16 * z);
+      ctx.strokeStyle = "#403426"; ctx.lineWidth = 1;
+      ctx.strokeRect(sbX - 14 * z, sbY - 8 * z, 28 * z, 16 * z);
+    }
+
+    // Cover Clusters & Nodes
+    for (var cI = 0; cI < clusters.length; cI++) {
+      var cl = clusters[cI], cx = sx(cl.x), cy = sy(cl.y);
+      if (cx < -40 || cx > sw + 40 || cy < -40 || cy > sh + 40) continue;
+      ctx.fillStyle = "rgba(92, 80, 58, 0.52)";
+      ctx.beginPath(); ctx.arc(cx, cy, Math.max(6, 24 * z), 0, Math.PI * 2); ctx.fill();
+    }
+    var nSz = Math.max(2.5, 4.5 * z);
+    for (var nI = 0; nI < nodes.length; nI++) {
+      var nd = nodes[nI], nx = sx(nd.x), ny = sy(nd.y);
+      if (nx < 0 || nx > sw || ny < 0 || ny > sh) continue;
+      ctx.fillStyle = nd.occ ? "#f5b041" : "rgba(210, 200, 165, 0.25)";
+      ctx.fillRect(nx - nSz * 0.5, ny - nSz * 0.5, nSz, nSz);
+    }
+
+    // Solid Walls, Zhonghua Gate Bastion & Urban Buildings
+    for (var oI = 0; oI < walls.length; oI++) {
+      var ob = walls[oI], ox = sx(ob.x), oy = sy(ob.y), ow = ob.w * z, oh = ob.h * z;
+      if (ox + ow < 0 || ox > sw || oy + oh < 0 || oy > sh) continue;
+      ctx.fillStyle = ob.t === 0 ? "#5a5d54" : (ob.t === 1 ? "#5c493e" : (ob.s === 0 ? "#4a433c" : "#524840"));
+      ctx.fillRect(ox, oy, ow, oh);
+      ctx.strokeStyle = "#211d1a"; ctx.lineWidth = 2; ctx.strokeRect(ox, oy, ow, oh);
+      if (ob.t === 2 && ow > 14 && oh > 14) {
+        ctx.fillStyle = "#5e5349"; ctx.fillRect(ox + 5, oy + 5, ow - 10, oh - 10);
+      }
+    }
+
+    // 7 Capture Flags
+    for (var fI = 0; fI < flags.length; fI++) {
+      var fl = flags[fI], fx = sx(fl.x), fy = sy(fl.y), fr = fl.r * z;
+      if (fy + fr < 0 || fy - fr > sh || fx + fr < 0 || fx - fr > sw) continue;
+      ctx.strokeStyle = fl.own === 0 ? "rgba(77,166,255,0.65)" : "rgba(255,92,77,0.65)";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(fx, fy, fr, 0, Math.PI * 2); ctx.stroke();
+
+      var prog = Math.abs(fl.timer) / 30.0;
+      ctx.strokeStyle = fl.timer >= 0 ? "#4da6ff" : "#ff5c4d";
+      ctx.lineWidth = 4.5;
+      ctx.beginPath(); ctx.arc(fx, fy, Math.max(12, 22 * z), -1.57, -1.57 + Math.PI * 2 * prog); ctx.stroke();
+
+      ctx.fillStyle = "rgba(16,20,14,0.88)";
+      ctx.fillRect(fx - 66, fy - 8, 132, 16);
+      ctx.fillStyle = "#f5b041"; ctx.font = "bold 9.5px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(fl.name + " [" + Math.round(Math.abs(fl.timer)) + "s]", fx, fy);
+    }
+
+    // Selected Squad Waypoint Lines
+    for (var sqI = 0; sqI < squads.length; sqI++) {
+      var sq = squads[sqI];
+      if (sq.team === 0 && (selSq === -1 || selSq === sqI)) {
+        var lead = sq.members.find(function(m) { return m.st === 0; });
+        if (lead) {
+          ctx.strokeStyle = selSq === -1 ? "rgba(255,215,0,0.55)" : "rgba(77,166,255,0.85)";
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(sx(lead.x), sy(lead.y)); ctx.lineTo(sx(sq.wx), sy(sq.wy)); ctx.stroke();
+          ctx.strokeStyle = "#f5b041";
+          ctx.beginPath(); ctx.arc(sx(sq.wx), sy(sq.wy), Math.max(6, 12 * z), 0, Math.PI * 2); ctx.stroke();
+        }
+      }
+    }
+
+    // Tanks
+    for (var tkI = 0; tkI < tanks.length; tkI++) {
+      var tk = tanks[tkI], tkX = sx(tk.x), tkY = sy(tk.y);
+      if (tkX < -50 || tkX > sw + 50 || tkY < -50 || tkY > sh + 50) continue;
+      var hw = 16 * z, hh = 22 * z;
+      ctx.fillStyle = tk.alive ? (tk.team === 0 ? "#385d8a" : "#70483c") : "#1c1a17";
+      ctx.fillRect(tkX - hw, tkY - hh, hw * 2, hh * 2);
+      ctx.strokeStyle = "#141612"; ctx.lineWidth = 2; ctx.strokeRect(tkX - hw, tkY - hh, hw * 2, hh * 2);
+      if (tk.alive) {
+        ctx.fillStyle = tk.team === 0 ? "#2c496d" : "#54362d";
+        ctx.beginPath(); ctx.arc(tkX, tkY, Math.max(5, 10 * z), 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "#222"; ctx.lineWidth = Math.max(2.5, 4.5 * z);
+        ctx.beginPath(); ctx.moveTo(tkX, tkY);
+        ctx.lineTo(tkX + Math.cos(tk.tAng) * 24 * z, tkY + Math.sin(tk.tAng) * 24 * z); ctx.stroke();
+
+        var hpPct = clamp(tk.hp / tk.maxHp, 0, 1), bw = 38 * z;
+        ctx.fillStyle = "rgba(0,0,0,0.8)"; ctx.fillRect(tkX - bw * 0.5, tkY - hh - 9, bw, 4);
+        ctx.fillStyle = "#f5b041"; ctx.fillRect(tkX - bw * 0.5, tkY - hh - 9, bw * hpPct, 4);
+      }
+    }
+
+    // Projectiles
+    for (var pI2 = 0; pI2 < MAX_PROJ; pI2++) {
+      var p = projectiles[pI2];
+      if (!p.active) continue;
+      var px = sx(p.x), py = sy(p.y);
+      if (px < 0 || px > sw || py < 0 || py > sh) continue;
+      ctx.strokeStyle = p.isShell ? "#ff9933" : (p.team === 0 ? "#ffe680" : "#ff8566");
+      ctx.lineWidth = p.isShell ? 3.5 : 1.7;
+      ctx.beginPath(); ctx.moveTo(sx(p.prevX), sy(p.prevY)); ctx.lineTo(px, py); ctx.stroke();
+    }
+
+    for (var gI = 0; gI < grenades.length; gI++) {
+      var gr = grenades[gI];
+      var pRatio = gr.t / gr.dur;
+      var arcLift = Math.sin(pRatio * Math.PI) * 28 * z;
+      var gx = sx(gr.x), gy = sy(gr.y) - arcLift;
+      ctx.fillStyle = "#f5b041";
+      ctx.beginPath(); ctx.arc(gx, gy, Math.max(2.5, 4 * z), 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Soldiers + Squad Banners & Trumpet Notes
+    for (var sI = 0; sI < soldiers.length; sI++) {
+      var s = soldiers[sI], ssx = sx(s.x), ssy = sy(s.y);
+      if (ssx < -22 || ssx > sw + 22 || ssy < -22 || ssy > sh + 22) continue;
+
+      if (s.st === 2) {
+        ctx.fillStyle = "rgba(15,15,15,0.48)"; ctx.fillRect(ssx - 2, ssy - 2, 4, 4); continue;
+      }
+      if (s.st === 1) {
+        ctx.fillStyle = "#e74c3c"; ctx.beginPath(); ctx.arc(ssx, ssy, Math.max(3, 4.5 * z), 0, Math.PI * 2); ctx.fill(); continue;
+      }
+
+      var rx = ssx - Math.cos(s.ang) * (s.recoil * z);
+      var ry = ssy - Math.sin(s.ang) * (s.recoil * z);
+
+      if (s.role === "SL" && s.squad.trumpetPulse > 0) {
+        ctx.fillStyle = "#ffcc00"; ctx.font = "bold 14px sans-serif";
+        ctx.fillText("♫", rx + Math.sin(nowSec * 8) * 8, ry - 22);
+      }
+
+      if (s.role === "HMG" && s.tripod) {
+        ctx.strokeStyle = "#ff8c1a"; ctx.lineWidth = 2;
+        var leg = Math.max(6, 11 * z);
+        ctx.beginPath();
+        ctx.moveTo(rx, ry); ctx.lineTo(rx + Math.cos(s.ang - 0.5) * leg, ry + Math.sin(s.ang - 0.5) * leg);
+        ctx.moveTo(rx, ry); ctx.lineTo(rx + Math.cos(s.ang + 0.5) * leg, ry + Math.sin(s.ang + 0.5) * leg);
+        ctx.stroke();
+      }
+
+      var gunLen = Math.max(5, (s.role === "HMG" ? 11 : 8.5) * z);
+      var gxEnd = rx + Math.cos(s.ang) * gunLen, gyEnd = ry + Math.sin(s.ang) * gunLen;
+      ctx.strokeStyle = "#1c1f18"; ctx.lineWidth = Math.max(1.5, 2.2 * z);
+      ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(gxEnd, gyEnd); ctx.stroke();
+
+      if (s.flash > 0) {
+        ctx.fillStyle = "#fff2a6";
+        ctx.beginPath(); ctx.arc(gxEnd, gyEnd, Math.max(2.5, 4.2 * z), 0, Math.PI * 2); ctx.fill();
+      }
+
+      if (s.team === 0 && (selSq === -1 || s.squad.id === selSq)) {
+        ctx.strokeStyle = s.role === "SL" ? "#ffd700" : "#4da6ff"; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.arc(rx, ry, Math.max(5.5, 9 * z), 0, Math.PI * 2); ctx.stroke();
+      }
+
+      if (s.sup > 0.25) {
+        ctx.strokeStyle = s.sup > 0.72 ? "#ff3b30" : "#f5b041"; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.arc(rx, ry, Math.max(4.5, 8 * z), -1.57, -1.57 + Math.PI * 2 * s.sup); ctx.stroke();
+      }
+
+      var stanceScale = s.sup > 0.5 ? 0.84 : 1.0;
+      var rad = Math.max(3.4, (s.role === "SL" ? 6.8 : 5.0) * z * stanceScale);
+      var sqCol = getSquadColor(s.squad);
+      ctx.fillStyle = sqCol;
+      ctx.beginPath(); ctx.arc(rx, ry, rad, 0, Math.PI * 2); ctx.fill();
+
+      // FLAG BANNER
+      if (s.role === "SL") {
+        var poleH = Math.max(12, 20 * z);
+        var flagW = Math.max(10, 15 * z), flagH = Math.max(6, 9 * z);
+        var wave = Math.sin(nowSec * 6 + s.squad.id) * (2.5 * z);
+        ctx.strokeStyle = "#e6d8ad"; ctx.lineWidth = Math.max(1.5, 2 * z);
+        ctx.beginPath(); ctx.moveTo(rx + 2, ry); ctx.lineTo(rx + 2, ry - poleH); ctx.stroke();
+
+        ctx.fillStyle = sqCol;
+        ctx.beginPath();
+        ctx.moveTo(rx + 2, ry - poleH);
+        ctx.lineTo(rx + 2 + flagW, ry - poleH + flagH * 0.35 + wave);
+        ctx.lineTo(rx + 2, ry - poleH + flagH);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "#ffd700"; ctx.lineWidth = 1; ctx.stroke();
+      } else if (s.role !== "R") {
+        ctx.font = "bold 8.5px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillStyle = s.role === "BUILD" ? "#f1948a" : (s.role === "AP" ? "#b5ad94" : (s.role === "MG" ? "#ffe082" : "#7dffb3"));
+        var sym = s.role === "BUILD" ? "\u2739" : (s.role === "AP" ? "\u2739" : (s.role === "MG" ? "\u25B2" : "+"));
+        ctx.fillText(sym, rx, ry);
+      }
+    }
+
+    // Numeric Squad Leader Floating Tags (1, 2, 3...)
+    ctx.font = "bold 9.5px sans-serif"; ctx.textAlign = "center";
+    for (var lI = 0; lI < squads.length; lI++) {
+      var sq2 = squads[lI], lead2 = sq2.members.find(function(m) { return m.st === 0; });
+      if (!lead2) continue;
+      var lsx = sx(lead2.x), lsy = sy(lead2.y) - 15;
+      if (lsx < -40 || lsx > sw + 40 || lsy < -20 || lsy > sh + 20) continue;
+      ctx.fillStyle = "rgba(16,20,14,0.85)"; ctx.fillRect(lsx - 24, lsy - 7, 48, 13);
+      ctx.fillStyle = sq2.team === 1
+        ? (sq2.isIndependent ? "#e8daef" : "#ff948a")
+        : (sq2.isIndependent ? "#fdebd0" : (sq2.isCopilot ? "#81e6d9" : "#85c1ff"));
+      ctx.fillText("#" + sq2.name + " [" + sq2.order.charAt(0) + "]", lsx, lsy);
+    }
+
+    for (var eI3 = 0; eI3 < effects.length; eI3++) {
+      var ef2 = effects[eI3]; ctx.fillStyle = ef2.color;
+      ctx.beginPath(); ctx.arc(sx(ef2.x), sy(ef2.y), Math.max(2, ef2.r * z), 0, Math.PI * 2); ctx.fill();
+    }
+    for (var smI2 = 0; smI2 < smokes.length; smI2++) {
+      var sm2 = smokes[smI2]; ctx.fillStyle = "rgba(220,226,216,0.55)";
+      ctx.beginPath(); ctx.arc(sx(sm2.x), sy(sm2.y), Math.max(8, sm2.r * z), 0, Math.PI * 2); ctx.fill();
+    }
+    for (var rpI2 = 0; rpI2 < ripples.length; rpI2++) {
+      var rp2 = ripples[rpI2]; ctx.strokeStyle = "#f5b041"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(sx(rp2.x), sy(rp2.y), Math.max(4, rp2.r * z), 0, Math.PI * 2); ctx.stroke();
+    }
+
+    // Minimap
+    var mx = 125 / W, my = 200 / H;
+    mCtx.fillStyle = "#1d2217"; mCtx.fillRect(0, 0, 125, 200);
+    // Yuhuatai Hill zone indicator on minimap
+    mCtx.fillStyle = "rgba(74, 88, 58, 0.45)"; mCtx.fillRect(0, 0, 125, 1850 * my);
+    // Zhonghua Gate Wall line on minimap
+    mCtx.fillStyle = "#6e5547"; mCtx.fillRect(0, 2380 * my, 125, 4);
+
+    flags.forEach(function(fl) {
+      mCtx.fillStyle = fl.own === 0 ? "#4da6ff" : "#ff5c4d";
+      mCtx.fillRect(fl.x * mx - 3, fl.y * my - 3, 6, 6);
+    });
+    tanks.forEach(function(tk) {
+      if (tk.alive) { mCtx.fillStyle = "#f5b041"; mCtx.fillRect(tk.x * mx - 2.5, tk.y * my - 2.5, 5, 5); }
+    });
+    squads.forEach(function(sq) {
+      var l = sq.members.find(function(m) { return m.st === 0; });
+      if (l) {
+        mCtx.fillStyle = getSquadColor(sq);
+        mCtx.beginPath(); mCtx.arc(l.x * mx, l.y * my, 2.3, 0, Math.PI * 2); mCtx.fill();
+      }
+    });
+    mCtx.strokeStyle = "#ffffff"; mCtx.lineWidth = 1.1;
+    mCtx.strokeRect((cam.x - sw * 0.5 / z) * mx, (cam.y - sh * 0.5 / z) * my, (sw / z) * mx, (sh / z) * my);
+  }
+
+  /****************************************************************************
+   * 5. TOUCH GESTURE PAN/ZOOM ENGINE & COMMAND BUTTON BINDINGS
+   ****************************************************************************/
+  function selectSquad(id, center) {
+    selSq = id;
+    for (var i = 0; i < 8; i++) {
+      var btn = document.getElementById("sq" + i);
+      if (btn) btn.classList.toggle("active-sq", id === i);
+    }
+    document.getElementById("sqAll").classList.toggle("active-all", id === -1);
+    var ref = id === -1 ? squads[0] : squads[id];
+    if (ref) {
+      document.getElementById("ordAdv").classList.toggle("active-ord", ref.order === "ADVANCE");
+      document.getElementById("ordHold").classList.toggle("active-ord", ref.order === "HOLD");
+      document.getElementById("ordFlag").classList.toggle("active-ord", ref.order === "ASSAULT_FLAG");
+      document.getElementById("ordRet").classList.toggle("active-ord", ref.order === "FALLBACK");
+      if (center) {
+        var l = ref.members.find(function(m) { return m.st === 0; });
+        if (l) { cam.x = l.x; cam.y = l.y; clampCam(); }
+      }
+    }
+  }
+
+  function bindBtn(id, fn) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener("pointerdown", function(e) { e.preventDefault(); e.stopPropagation(); fn(); });
+  }
+  for (var b = 0; b < 8; b++) (function(idx) { bindBtn("sq" + idx, function() { selectSquad(idx, true); }); })(b);
+  bindBtn("sqAll", function() { selectSquad(-1, false); });
+  bindBtn("bCopilot", function() {
+    copilotOn = !copilotOn;
+    var btn = document.getElementById("bCopilot");
+    btn.classList.toggle("active-copilot", copilotOn);
+    btn.innerHTML = (copilotOn ? "CO-PILOT: ON" : "CO-PILOT: OFF") + '<span class="sub">SQUADS 9-16</span>';
+  });
+
+  [["ordAdv","ADVANCE"],["ordHold","HOLD"],["ordFlag","ASSAULT_FLAG"],["ordRet","FALLBACK"]].forEach(function(pair) {
+    bindBtn(pair[0], function() {
+      if (selSq === -1) {
+        for (var i = 0; i < squads.length; i++) {
+          if (squads[i].team === 0 && !squads[i].isIndependent) setSquadOrder(squads[i], pair[1]);
+        }
+      } else if (squads[selSq]) {
+        setSquadOrder(squads[selSq], pair[1]);
+      }
+      selectSquad(selSq, false);
+    });
+  });
+
+  bindBtn("bSmoke", function() {
+    var list = selSq === -1
+      ? squads.filter(function(sq) { return sq.team === 0 && !sq.isIndependent; })
+      : [squads[selSq]];
+    list.forEach(function(sq) {
+      if (!sq) return;
+      // Only SL + 2 members carry smoke bombs; only deploy if one of them still has their smoke kit!
+      var smoker = sq.members.find(function(m) { return m.st === 0 && m.hasSmoke; });
+      if (smoker) {
+        smoker.hasSmoke = false;
+        spawnSmoke(smoker.x + Math.cos(sq.ang) * 65, smoker.y + Math.sin(sq.ang) * 65);
+      }
+    });
+  });
+
+  bindBtn("bWave", executeAlternatingWave);
+  bindBtn("bReset", initBattle);
+  bindBtn("bZoomIn", function() { cam.z = clamp(cam.z * 1.22, cam.minZ, cam.maxZ); clampCam(); });
+  bindBtn("bZoomOut", function() { cam.z = clamp(cam.z * 0.82, cam.minZ, cam.maxZ); clampCam(); });
+  bindBtn("bCenter", function() { selectSquad(selSq >= 0 ? selSq : 4, true); });
+
+  var ptrs = {}, px0 = 0, py0 = 0, cx0 = 0, cy0 = 0, maxDrag = 0, pinch0 = 0, downT = 0;
+  function getPtrs() { var a = []; for (var k in ptrs) if (Object.prototype.hasOwnProperty.call(ptrs, k)) a.push(ptrs[k]); return a; }
+
+  cv.addEventListener("pointerdown", function(e) {
+    e.preventDefault(); ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var p = getPtrs();
+    if (p.length === 1) { px0 = e.clientX; py0 = e.clientY; cx0 = cam.x; cy0 = cam.y; maxDrag = 0; downT = Date.now(); }
+    else if (p.length === 2) pinch0 = dist(p[0].x, p[0].y, p[1].x, p[1].y);
+  });
+
+  cv.addEventListener("pointermove", function(e) {
+    if (!ptrs[e.pointerId]) return;
+    ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var p = getPtrs();
+    if (p.length === 1) {
+      var dx = e.clientX - px0, dy = e.clientY - py0;
+      maxDrag = Math.max(maxDrag, Math.hypot(dx, dy));
+      if (maxDrag > 6) { cam.x = cx0 - dx / cam.z; cam.y = cy0 - dy / cam.z; clampCam(); }
+    } else if (p.length === 2) {
+      var cd = dist(p[0].x, p[0].y, p[1].x, p[1].y);
+      if (pinch0 > 10) { cam.z = clamp(cam.z * (cd / pinch0), cam.minZ, cam.maxZ); clampCam(); }
+      pinch0 = cd; maxDrag = 999;
+    }
+  });
+
+  function endPtr(e) {
+    delete ptrs[e.pointerId];
+    if (getPtrs().length === 0 && maxDrag < 12 && Date.now() - downT < 320) {
+      var wPt = toWorld(e.clientX, e.clientY);
+      for (var i = 0; i < 8; i++) {
+        var l = squads[i].members.find(function(m) { return m.st === 0; });
+        if (l && dist(wPt.x, wPt.y, l.x, l.y) < 38) { selectSquad(i, false); return; }
+      }
+      if (selSq === -1) {
+        var cmdIdx = 0;
+        for (var j = 0; j < squads.length; j++) {
+          if (squads[j].team === 0 && !squads[j].isIndependent) {
+            var angle = (cmdIdx / 16) * Math.PI * 2;
+            var radius = (cmdIdx >= 8) ? 185 : 95;
+            claimCover(squads[j], wPt.x + Math.cos(angle) * radius, wPt.y + Math.sin(angle) * radius);
+            cmdIdx++;
+          }
+        }
+      } else if (squads[selSq]) {
+        claimCover(squads[selSq], wPt.x, wPt.y);
+      }
+      ripples.push({ x: wPt.x, y: wPt.y, r: 8, a: 1.0 });
+    }
+  }
+  cv.addEventListener("pointerup", endPtr);
+  cv.addEventListener("pointercancel", endPtr);
+
+  cv.addEventListener("wheel", function(e) {
+    e.preventDefault(); cam.z = clamp(cam.z * (e.deltaY < 0 ? 1.12 : 0.89), cam.minZ, cam.maxZ); clampCam();
+  }, { passive: false });
+
+  mCv.addEventListener("pointerdown", function(e) {
+    var r = mCv.getBoundingClientRect();
+    cam.x = ((e.clientX - r.left) / r.width) * W; cam.y = ((e.clientY - r.top) / r.height) * H; clampCam();
+  });
+
+  var lastT = Date.now(), fps = 60, uiTick = 0;
+  function mainLoop() {
+    var now = Date.now(), dt = clamp((now - lastT) / 1000, 0.001, 0.05);
+    lastT = now; fps = fps * 0.9 + (1 / dt) * 0.1;
+
+    var activeP = updateSim(dt);
+    renderScene(now * 0.001);
+
+    uiTick += dt;
+    if (uiTick > 0.25) {
+      uiTick = 0;
+      var youA = 0, allyA = 0, indAllyA = 0, axisA = 0;
+      for (var i = 0; i < squads.length; i++) {
+        var sq = squads[i];
+        var c = sq.members.filter(function(m) { return m.st === 0; }).length;
+        if (i < 8) {
+          youA += c;
+          document.getElementById("ms" + i).textContent = c + "/10 | " + Math.round(sq.morale) + "%";
+        } else if (sq.team === 0) {
+          if (sq.isIndependent) indAllyA += c;
+          else allyA += c;
+        } else {
+          axisA += c;
+        }
+      }
+
+      document.getElementById("uiYou").textContent = "YOU (1-8): " + youA;
+      document.getElementById("uiAlly").textContent = "ALLY: " + allyA;
+      document.getElementById("uiInd").textContent = "VANGUARD AI: " + indAllyA;
+      document.getElementById("uiWave").textContent =
+        "NEXT: " + (nextWaveTeam === 0 ? "BLUE" : "RED") + " WAVE (" + Math.ceil(waveTimer) + "s)";
+      document.getElementById("uiAxis").textContent = "RED ATTACKERS: " + axisA;
+
+      var fTgt = getAlliedTargetFlag();
+      document.getElementById("uiFlags").textContent =
+        "OBJECTIVE: " + fTgt.name + " [" + fTgt.state + " | " + Math.round(Math.abs(fTgt.timer)) + "/30s]";
+
+      if (selSq >= 0 && squads[selSq]) {
+        var sSq = squads[selSq];
+        var grens = sSq.members.filter(function(m) { return m.st === 0 && m.hasGrenade; }).length;
+        var smks = sSq.members.filter(function(m) { return m.st === 0 && m.hasSmoke; }).length;
+        var builds = sSq.members.filter(function(m) { return m.st === 0 && m.role === "BUILD" && m.hasBuildKit; }).length;
+        document.getElementById("uiSquadInfo").innerHTML =
+          "<b>SQUAD #" + sSq.name + "</b> | Order: <b>" + sSq.order + "</b><br>" +
+          "Morale: <b>" + Math.round(sSq.morale) + "%</b> | Suppressed: <b>" + Math.round(sSq.supAvg * 100) + "%</b><br>" +
+          "Kit Left: <b>" + grens + " Frags, " + smks + "/3 Smokes, " + builds + " Sandbags</b>";
+      }
+      perfEl.textContent = Math.round(fps) + " FPS | " + (youA + allyA + indAllyA + axisA) + " AI | " + activeP + " PROJ";
+    }
+    requestAnimationFrame(mainLoop);
+  }
+
+  initBattle();
+  requestAnimationFrame(mainLoop);
+})();
+</script>
+</body>
+</html>
