@@ -159,12 +159,16 @@
   </div>
 </div>
 
-<!-- STREAMLINED DECLUTTERED TOP HUD -->
+<!-- STREAMLINED TOP HUD WITH TROOP COUNTERS RESTORED -->
 <div id="topHud">
   <div class="hud-card">
     <span class="pill p-evac" id="uiTimer">EVACUATION: 20:00</span>
     <span class="pill p-evac" id="uiCivs">SAVED: 0 | KIA: 0/150</span>
-    <span class="pill p-wave" id="uiWave">NEXT WAVE: 90s</span>
+    <span class="pill" style="background:rgba(56,214,255,0.18);border:1px solid #38d6ff;color:#9beaff" id="uiYou">YOU: 80</span>
+    <span class="pill" style="background:rgba(52,235,186,0.18);border:1px solid #34ebba;color:#9effe4" id="uiAlly">ALLY: 80</span>
+    <span class="pill" style="background:rgba(255,204,51,0.18);border:1px solid #ffcc33;color:#ffe799" id="uiInd">VANGUARD: 0</span>
+    <span class="pill" style="background:rgba(255,71,61,0.18);border:1px solid #ff473d;color:#ffaba6" id="uiAxis">IJA: 220</span>
+    <span class="pill p-wave" id="uiWave">WAVE: 90s</span>
   </div>
   <div class="hud-card" id="uiBridges" style="color:#a8e6ff">BRIDGES: W 100% | E 100%</div>
   <div class="hud-card" id="uiFlags" style="color:var(--amber)">GATES: W 100% | MAIN 100% | E 100%</div>
@@ -223,9 +227,15 @@
   // Y: 3180..3276 = Zhonghua Gate & Nanking City Wall (West X:595, Main X:1500, East X:2405)
   // Y: 3500..5950 = Nanking Urban Sectors & Xiakou Port
   // Y: 6250..7000 = Yangtze River & Evacuation Ferry Boats
+  // Multi-Stage Theatre (3000 x 7000):
+  // Y: 150..2450  = Expanded Yuhuatai Hills (F1, F2) & Outer Plaza (F3)
+  // Y: 2800..2896 = Zhonghua Gate & Nanking City Wall (West X:595, Main X:1500, East X:2405)
+  // Y: 3250..4150 = F4 Gate Bastion (Y:3250) & F5/F6 West Arsenal / East Commercial Ward (Y:3850)
+  // Y: 4380..4640 = Interior Qinhuai River & 2 Fortified Bridges (West X:820, East X:2180, 15,000 HP Barriers) BETWEEN F5/F6 and F7!
+  // Y: 5150..6250 = F7 Nanjing City Centre (Y:5150), F8 Xiakou Port (Y:5950) & Yangtze River (Y:6250)
   var W = 3000, H = 7000;
-  var QINHUAI_Y1 = 2220, QINHUAI_Y2 = 2480;
-  var WALL_Y = 3180;
+  var WALL_Y = 2800;
+  var QINHUAI_Y1 = 4380, QINHUAI_Y2 = 4640; // Placed between F5/F6 (3850) and F7 (5150)!
   var RIVER_Y = 6250;
 
   var SOLDIER_MAX_HP = 100;
@@ -243,7 +253,7 @@
   var mCv = document.getElementById("minimapCanvas"), mCtx = mCv.getContext("2d");
   var sw = window.innerWidth || 1024, sh = window.innerHeight || 768;
 
-  var cam = { x: 1500, y: 2350, z: 0.45, minZ: 0.20, maxZ: 1.45, shake: 0 };
+  var cam = { x: 1500, y: 2650, z: 0.45, minZ: 0.20, maxZ: 1.45, shake: 0 };
 
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function rand(a, b) { return a + Math.random() * (b - a); }
@@ -252,16 +262,13 @@
   function normAng(a) { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; }
 
   var shakeOffX = 0, shakeOffY = 0;
-  function sx(wx) { return (wx - (cam.x + shakeOffX)) * cam.z + sw * 0.5; }
-  function sy(wy) { return (wy - (cam.y + shakeOffY)) * cam.z + sh * 0.5; }
+  function sx(wx) { return (wx - cam.x) * cam.z + sw * 0.5; }
+  function sy(wy) { return (wy - cam.y) * cam.z + sh * 0.5; }
   function toWorld(px, py) { return { x: (px - sw * 0.5) / cam.z + cam.x, y: (py - sh * 0.5) / cam.z + cam.y }; }
 
+  // Screen shake completely disabled
   function addScreenShake(worldX, worldY, intensity) {
-    var d = dist(worldX, worldY, cam.x, cam.y);
-    if (d < 1500) {
-      var factor = (1 - d / 1500) * intensity;
-      cam.shake = Math.min(30, cam.shake + factor);
-    }
+    cam.shake = 0;
   }
 
   function clampCam() {
@@ -459,7 +466,7 @@
         p.active = true; p.isShell = isShell;
         p.penWall = isShell || (team === 1 && Math.random() < 0.30);
         p.x = x; p.y = y; p.prevX = x; p.prevY = y;
-        p.vx = Math.cos(ang) * spd; p.vy = Math.sin(ang) * spd;
+        p.vx = Math.cos(ang) * (spd * 1.55); p.vy = Math.sin(ang) * (spd * 1.55);
         p.team = team; p.dmg = dmg; p.supPower = sup; p.life = life;
         return;
       }
@@ -722,25 +729,43 @@
     return t0 <= t1 ? t0 : null;
   }
 
-  function traceWall(x1, y1, x2, y2, shooterOnWall, ignoreBattlements) {
+  function traceWall(x1, y1, x2, y2, shooterOnWall, ignoreBattlements, shooterTeam) {
     var bestT = 2, hx = x2, hy = y2, hitObj = null;
     var minX = Math.min(x1, x2), maxX = Math.max(x1, x2), minY = Math.min(y1, y2), maxY = Math.max(y1, y2);
 
-    // Check Bridge Barriers (15,000 HP)
-    for (var bI = 0; bI < bridgeBarriers.length; bI++) {
-      var bb = bridgeBarriers[bI];
-      if (bb.hp <= 0) continue;
-      if (maxX < bb.x || minX > bb.x + bb.w || maxY < bb.y || minY > bb.y + bb.h) continue;
-      var tb = segRectHit(x1, y1, x2, y2, bb.x, bb.y, bb.w, bb.h);
-      if (tb !== null && tb < bestT) { bestT = tb; hx = x1 + (x2 - x1) * tb; hy = y1 + (y2 - y1) * tb; hitObj = bb; }
-    }
+    // Defenders (shooterTeam === 0) shoot freely through friendly Bridge Barriers, Gates, AT Traps, and Sandbags!
+    if (shooterTeam !== 0) {
+      for (var bI = 0; bI < bridgeBarriers.length; bI++) {
+        var bb = bridgeBarriers[bI];
+        if (bb.hp <= 0) continue;
+        if (maxX < bb.x || minX > bb.x + bb.w || maxY < bb.y || minY > bb.y + bb.h) continue;
+        var tb = segRectHit(x1, y1, x2, y2, bb.x, bb.y, bb.w, bb.h);
+        if (tb !== null && tb < bestT) { bestT = tb; hx = x1 + (x2 - x1) * tb; hy = y1 + (y2 - y1) * tb; hitObj = bb; }
+      }
 
-    for (var gI = 0; gI < gates.length; gI++) {
-      var g = gates[gI];
-      if (g.hp <= 0 || shooterOnWall) continue;
-      if (maxX < g.x || minX > g.x + g.w || maxY < g.y || minY > g.y + g.h) continue;
-      var tg = segRectHit(x1, y1, x2, y2, g.x, g.y, g.w, g.h);
-      if (tg !== null && tg < bestT) { bestT = tg; hx = x1 + (x2 - x1) * tg; hy = y1 + (y2 - y1) * tg; hitObj = g; }
+      for (var gI = 0; gI < gates.length; gI++) {
+        var g = gates[gI];
+        if (g.hp <= 0 || shooterOnWall) continue;
+        if (maxX < g.x || minX > g.x + g.w || maxY < g.y || minY > g.y + g.h) continue;
+        var tg = segRectHit(x1, y1, x2, y2, g.x, g.y, g.w, g.h);
+        if (tg !== null && tg < bestT) { bestT = tg; hx = x1 + (x2 - x1) * tg; hy = y1 + (y2 - y1) * tg; hitObj = g; }
+      }
+
+      for (var aI = 0; aI < atObstacles.length; aI++) {
+        var at = atObstacles[aI];
+        if (at.hp <= 0) continue;
+        if (maxX < at.x - 18 || minX > at.x + 18 || maxY < at.y - 11 || minY > at.y + 11) continue;
+        var ta = segRectHit(x1, y1, x2, y2, at.x - 18, at.y - 11, 36, 22);
+        if (ta !== null && ta < bestT) { bestT = ta; hx = x1 + (x2 - x1) * ta; hy = y1 + (y2 - y1) * ta; hitObj = at; }
+      }
+
+      for (var j = 0; j < sandbags.length; j++) {
+        var s = sandbags[j];
+        if (s.hp <= 0) continue;
+        if (maxX < s.x - 16 || minX > s.x + 16 || maxY < s.y - 9 || minY > s.y + 9) continue;
+        var ts = segRectHit(x1, y1, x2, y2, s.x - 16, s.y - 9, 32, 18);
+        if (ts !== null && ts < bestT) { bestT = ts; hx = x1 + (x2 - x1) * ts; hy = y1 + (y2 - y1) * ts; hitObj = s; }
+      }
     }
 
     for (var i = 0; i < walls.length; i++) {
@@ -752,21 +777,6 @@
       if (t !== null && t < bestT) { bestT = t; hx = x1 + (x2 - x1) * t; hy = y1 + (y2 - y1) * t; hitObj = w; }
     }
 
-    for (var aI = 0; aI < atObstacles.length; aI++) {
-      var at = atObstacles[aI];
-      if (at.hp <= 0) continue;
-      if (maxX < at.x - 18 || minX > at.x + 18 || maxY < at.y - 11 || minY > at.y + 11) continue;
-      var ta = segRectHit(x1, y1, x2, y2, at.x - 18, at.y - 11, 36, 22);
-      if (ta !== null && ta < bestT) { bestT = ta; hx = x1 + (x2 - x1) * ta; hy = y1 + (y2 - y1) * ta; hitObj = at; }
-    }
-
-    for (var j = 0; j < sandbags.length; j++) {
-      var s = sandbags[j];
-      if (s.hp <= 0) continue;
-      if (maxX < s.x - 16 || minX > s.x + 16 || maxY < s.y - 9 || minY > s.y + 9) continue;
-      var ts = segRectHit(x1, y1, x2, y2, s.x - 16, s.y - 9, 32, 18);
-      if (ts !== null && ts < bestT) { bestT = ts; hx = x1 + (x2 - x1) * ts; hy = y1 + (y2 - y1) * ts; hitObj = s; }
-    }
     return bestT <= 1 ? { x: hx, y: hy, obj: hitObj } : null;
   }
 
@@ -800,42 +810,43 @@
     sandbags = []; atObstacles = []; wireZones = []; wrecks = []; scars = []; particles = []; shockwaves = []; fogClouds = []; artilleryShells = [];
     initGrid();
 
-    // 8 Multi-Stage Objectives from Yuhuatai Hills -> Qinhuai Bridges -> Zhonghua Gate -> Xiakou Port
+    // 8 Multi-Stage Objectives: Expanded Yuhuatai (F1, F2, F3) -> Gates (F4) -> F5/F6 -> River Bridges -> F7 -> F8 Port
     flags = [
-      { id: 0, name: "F1 YUHUATAI NORTH APPROACH", x: 1500, y: 920,  r: 160, own: 1, timer: -30.0, state: "AXIS" },
-      { id: 1, name: "F2 YUHUATAI CITADEL CREST",  x: 1500, y: 1680, r: 175, own: 0, timer: 30.0,  state: "ALLIES" },
-      { id: 2, name: "F3 ZHONGHUA OUTER PLAZA",    x: 1500, y: 2820, r: 165, own: 0, timer: 30.0,  state: "ALLIES" },
-      { id: 3, name: "F4 ZHONGHUA GATE BASTION",   x: 1500, y: 3480, r: 170, own: 0, timer: 30.0,  state: "ALLIES" },
-      { id: 4, name: "F5 WEST ARSENAL COMPOUND",   x: 820,  y: 4180, r: 160, own: 0, timer: 30.0,  state: "ALLIES" },
-      { id: 5, name: "F6 EAST COMMERCIAL WARD",    x: 2180, y: 4180, r: 160, own: 0, timer: 30.0,  state: "ALLIES" },
-      { id: 6, name: "F7 NANJING CITY CENTRE",     x: 1500, y: 5050, r: 175, own: 0, timer: 30.0,  state: "ALLIES" },
+      { id: 0, name: "F1 YUHUATAI OUTER RIDGE",    x: 1500, y: 850,  r: 165, own: 1, timer: -30.0, state: "AXIS" },
+      { id: 1, name: "F2 YUHUATAI HIGH GROUND",    x: 1500, y: 1620, r: 175, own: 0, timer: 30.0,  state: "ALLIES" },
+      { id: 2, name: "F3 ZHONGHUA OUTER PLAZA",    x: 1500, y: 2380, r: 165, own: 0, timer: 30.0,  state: "ALLIES" },
+      { id: 3, name: "F4 ZHONGHUA GATE BASTION",   x: 1500, y: 3250, r: 170, own: 0, timer: 30.0,  state: "ALLIES" },
+      { id: 4, name: "F5 WEST ARSENAL COMPOUND",   x: 820,  y: 3850, r: 160, own: 0, timer: 30.0,  state: "ALLIES" },
+      { id: 5, name: "F6 EAST COMMERCIAL WARD",    x: 2180, y: 3850, r: 160, own: 0, timer: 30.0,  state: "ALLIES" },
+      { id: 6, name: "F7 NANJING CITY CENTRE",     x: 1500, y: 5150, r: 175, own: 0, timer: 30.0,  state: "ALLIES" },
       { id: 7, name: "F8 XIAKOU PORT PLAZA",       x: 1500, y: 5950, r: 185, own: 0, timer: 30.0,  state: "ALLIES" }
     ];
 
-    // 2 Strategic Bridges crossing the Qinhuai River (Y: 2220..2480)
+    // 2 Strategic Bridges crossing the Interior River (Y: 4380..4640) BETWEEN F5/F6 (3850) and F7 (5150)!
     bridges = [
-      { id: 0, name: "WEST QINHUAI BRIDGE", x: 700,  y: QINHUAI_Y1 - 15, w: 240, h: (QINHUAI_Y2 - QINHUAI_Y1) + 30, cx: 820,  cy: 2350 },
-      { id: 1, name: "EAST QINHUAI BRIDGE", x: 2060, y: QINHUAI_Y1 - 15, w: 240, h: (QINHUAI_Y2 - QINHUAI_Y1) + 30, cx: 2180, cy: 2350 }
+      { id: 0, name: "WEST QINHUAI BRIDGE", x: 700,  y: QINHUAI_Y1 - 15, w: 240, h: (QINHUAI_Y2 - QINHUAI_Y1) + 30, cx: 820,  cy: 4510 },
+      { id: 1, name: "EAST QINHUAI BRIDGE", x: 2060, y: QINHUAI_Y1 - 15, w: 240, h: (QINHUAI_Y2 - QINHUAI_Y1) + 30, cx: 2180, cy: 4510 }
     ];
 
-    // Built-in 15,000 HP Sandbag & Steel Bridge Barriers at the southern end of each Bridge
+    // Built-in 15,000 HP Sandbag & Barbed-Wire Bridge Barriers on both Bridges
     bridgeBarriers = [
       { id: 0, name: "WEST BRIDGE BARRIER", x: 710,  y: QINHUAI_Y2 - 22, w: 220, h: 48, cx: 820,  cy: QINHUAI_Y2, hp: BRIDGE_BARRIER_MAX_HP, maxHp: BRIDGE_BARRIER_MAX_HP, isBridgeBarrier: true, isGate: true, breachedNotified: false },
       { id: 1, name: "EAST BRIDGE BARRIER", x: 2070, y: QINHUAI_Y2 - 22, w: 220, h: 48, cx: 2180, cy: QINHUAI_Y2, hp: BRIDGE_BARRIER_MAX_HP, maxHp: BRIDGE_BARRIER_MAX_HP, isBridgeBarrier: true, isGate: true, breachedNotified: false }
     ];
 
     roads = [
-      { x: 1350, y: 150,  w: 300, h: 2070 }, // Northern Highway into Yuhuatai Hills
-      { x: 730,  y: 600,  w: 180, h: 2580 }, // West Bridge Approach Road
-      { x: 2090, y: 600,  w: 180, h: 2580 }, // East Bridge Approach Road
-      { x: 200,  y: 2060, w: 2600, h: 110 }, // North Riverbank Lateral Road
-      { x: 200,  y: 2530, w: 2600, h: 115 }, // South Riverbank Lateral Road (Connects Bridges to 3 Gates!)
-      { x: 1350, y: 2530, w: 300, h: 3720 }, // Main Central Highway ( Zhonghua Gate -> City -> Central Pier)
-      { x: 515,  y: 2530, w: 160, h: 3720 }, // West Flank Highway
-      { x: 2325, y: 2530, w: 160, h: 3720 }, // East Flank Highway
-      { x: 200,  y: 3420, w: 2600, h: 130 },
-      { x: 200,  y: 4120, w: 2600, h: 135 },
-      { x: 200,  y: 4990, w: 2600, h: 140 },
+      { x: 1350, y: 150,  w: 300, h: 4230 }, // Main Central Highway from Yuhuatai through Zhonghua Gate to North Riverbank
+      { x: 515,  y: 150,  w: 160, h: 4230 }, // West Flank Highway
+      { x: 2325, y: 150,  w: 160, h: 4230 }, // East Flank Highway
+      { x: 730,  y: 3200, w: 180, h: 3050 }, // West Bridge Corridor through F5 & West Bridge
+      { x: 2090, y: 3200, w: 180, h: 3050 }, // East Bridge Corridor through F6 & East Bridge
+      { x: 1350, y: 4640, w: 300, h: 1610 }, // Central Avenue from South Riverbank through F7 to Central Pier
+      { x: 200,  y: 2320, w: 2600, h: 120 },
+      { x: 200,  y: 3190, w: 2600, h: 130 },
+      { x: 200,  y: 3790, w: 2600, h: 135 },
+      { x: 200,  y: 4240, w: 2600, h: 115 }, // North Riverbank Lateral Road
+      { x: 200,  y: 4680, w: 2600, h: 115 }, // South Riverbank Lateral Road
+      { x: 200,  y: 5090, w: 2600, h: 140 },
       { x: 200,  y: 5900, w: 2600, h: 220 }
     ];
 
@@ -855,8 +866,8 @@
       });
     });
 
-    // Heavily Fortified Yuhuatai Hill Trenches (Y: 850..1980)
-    [860, 1120, 1380, 1680, 1960, 2980].forEach(function(ty, idx) {
+    // Expanded Yuhuatai Hill Trenches (Y: 750..2580)
+    [760, 1080, 1400, 1740, 2080, 2580].forEach(function(ty, idx) {
       var pts = [];
       for (var x = 260; x <= 2740; x += 85) {
         pts.push({ x: x, y: ty + Math.sin(x * 0.011 + idx * 1.3) * 26 });
@@ -865,35 +876,33 @@
     });
 
     urbanTrenches = [
-      { x: 520,  y: 2560, w: 600,  label: "WEST BRIDGEHEAD TRENCH" },
-      { x: 1880, y: 2560, w: 600,  label: "EAST BRIDGEHEAD TRENCH" },
-      { x: 420,  y: 3550, w: 420,  label: "WEST GATE TRENCH" },
-      { x: 1220, y: 3550, w: 560,  label: "MAIN PLAZA TRENCH" },
-      { x: 2160, y: 3550, w: 420,  label: "EAST GATE TRENCH" },
-      { x: 460,  y: 4050, w: 680,  label: "ARSENAL CHOKELINE" },
-      { x: 1860, y: 4050, w: 680,  label: "COMMERCIAL CHOKELINE" },
-      { x: 960,  y: 4650, w: 1080, label: "CITADEL INNER TRENCH" },
+      { x: 420,  y: 3120, w: 420,  label: "WEST GATE TRENCH" },
+      { x: 1220, y: 3120, w: 560,  label: "MAIN PLAZA TRENCH" },
+      { x: 2160, y: 3120, w: 420,  label: "EAST GATE TRENCH" },
+      { x: 460,  y: 3720, w: 680,  label: "ARSENAL CHOKELINE" },
+      { x: 1860, y: 3720, w: 680,  label: "COMMERCIAL CHOKELINE" },
+      { x: 520,  y: 4720, w: 600,  label: "WEST BRIDGEHEAD TRENCH" },
+      { x: 1880, y: 4720, w: 600,  label: "EAST BRIDGEHEAD TRENCH" },
       { x: 420,  y: 5720, w: 2160, label: "PORT PERIMETER TRENCH" }
     ];
 
-    // Barbed Wire on Yuhuatai Hills, Bridge Approaches & Gate Approaches
     wireZones = [
-      { x: 520,  y: 1240, w: 480, h: 34 },
-      { x: 2000, y: 1240, w: 480, h: 34 },
-      { x: 1120, y: 1520, w: 760, h: 34 },
-      // Built-in Barbed Wire on both Qinhuai Bridges!
+      { x: 740,  y: 1260, w: 440, h: 34 },
+      { x: 1820, y: 1260, w: 440, h: 34 },
+      { x: 1120, y: 1920, w: 760, h: 34 },
+      { x: 860,  y: 2660, w: 360, h: 34 },
+      { x: 1780, y: 2660, w: 360, h: 34 },
+      // Built-in Barbed Wire on both Interior Qinhuai Bridges!
       { x: 705,  y: QINHUAI_Y1 + 25, w: 230, h: 36 },
-      { x: 2065, y: QINHUAI_Y1 + 25, w: 230, h: 36 },
-      { x: 860,  y: 3040, w: 360, h: 34 },
-      { x: 1780, y: 3040, w: 360, h: 34 }
+      { x: 2065, y: QINHUAI_Y1 + 25, w: 230, h: 36 }
     ];
 
     wrecks = [
-      { x: 1260, y: 1820, ang: 0.42, crushed: false },
-      { x: 1740, y: 2920, ang: -0.65, crushed: false },
-      { x: 380,  y: 2980, ang: 1.15, crushed: false },
-      { x: 2620, y: 2980, ang: -0.85, crushed: false },
-      { x: 1260, y: 3840, ang: 0.25, crushed: false }
+      { x: 1260, y: 2180, ang: 0.42, crushed: false },
+      { x: 1740, y: 2560, ang: -0.65, crushed: false },
+      { x: 380,  y: 2580, ang: 1.15, crushed: false },
+      { x: 2620, y: 2580, ang: -0.85, crushed: false },
+      { x: 1260, y: 3540, ang: 0.25, crushed: false }
     ];
 
     for (var scI = 0; scI < 55; scI++) {
@@ -906,15 +915,14 @@
       { id: 2, name: "EAST FLANK GATE",   x: 2305, y: WALL_Y, w: 200, h: 96, cx: 2405, cy: WALL_Y + 48, hp: 20000, maxHp: 20000, isGate: true, breachedNotified: false }
     ];
 
-    // Yuhuatai Hill Pillboxes & Zhonghua Gate City Wall Battlements
     [
-      { x: 960,  y: 1020, w: 96, h: 42, t: 0, hp: 220, maxHp: 220, isBattlement: false },
-      { x: 1945, y: 1020, w: 96, h: 42, t: 0, hp: 220, maxHp: 220, isBattlement: false },
-      { x: 1180, y: 1420, w: 98, h: 44, t: 0, hp: 240, maxHp: 240, isBattlement: false },
-      { x: 1720, y: 1420, w: 98, h: 44, t: 0, hp: 240, maxHp: 240, isBattlement: false },
-      { x: 1020, y: 1820, w: 96, h: 42, t: 0, hp: 240, maxHp: 240, isBattlement: false },
-      { x: 1880, y: 1820, w: 96, h: 42, t: 0, hp: 240, maxHp: 240, isBattlement: false },
-      // City Wall Segments at Y = 3180
+      { x: 860,  y: 1140, w: 96, h: 42, t: 0, hp: 220, maxHp: 220, isBattlement: false },
+      { x: 2045, y: 1140, w: 96, h: 42, t: 0, hp: 220, maxHp: 220, isBattlement: false },
+      { x: 1160, y: 1540, w: 98, h: 44, t: 0, hp: 240, maxHp: 240, isBattlement: false },
+      { x: 1740, y: 1540, w: 98, h: 44, t: 0, hp: 240, maxHp: 240, isBattlement: false },
+      { x: 860,  y: 1960, w: 96, h: 42, t: 0, hp: 240, maxHp: 240, isBattlement: false },
+      { x: 2045, y: 1960, w: 96, h: 42, t: 0, hp: 240, maxHp: 240, isBattlement: false },
+      // City Wall Segments at Y = 2800
       { x: 0,    y: WALL_Y, w: 495, h: 96, t: 1, hp: 4500, maxHp: 4500, isBattlement: true },
       { x: 695,  y: WALL_Y, w: 645, h: 96, t: 1, hp: 5500, maxHp: 5500, isBattlement: true },
       { x: 1660, y: WALL_Y, w: 645, h: 96, t: 1, hp: 5500, maxHp: 5500, isBattlement: true },
@@ -928,17 +936,17 @@
       });
     });
 
-    [3680, 4380, 4740, 5280].forEach(function(ry, rIdx) {
+    [3380, 4020, 4880, 5380].forEach(function(ry, rIdx) {
       [210, 1040, 1790, 2620].forEach(function(cx, cIdx) {
         walls.push({ x: cx, y: ry, w: 165, h: 140, t: 2, s: (rIdx + cIdx) % 2, hp: 240, maxHp: 240, isBattlement: false });
       });
     });
 
     [
-      [780, 2140], [860, 2140], [2140, 2140], [2220, 2140],
-      [560, 3090], [630, 3090], [1440, 3090], [1560, 3090], [2370, 3090], [2440, 3090],
-      [560, 3520], [630, 3520], [1440, 3520], [1560, 3520], [2370, 3520], [2440, 3520],
-      [780, 4020], [860, 4020], [2140, 4020], [2220, 4020], [1450, 4620], [1550, 4620],
+      [560, 2710], [630, 2710], [1440, 2710], [1560, 2710], [2370, 2710], [2440, 2710],
+      [560, 3100], [630, 3100], [1440, 3100], [1560, 3100], [2370, 3100], [2440, 3100],
+      [780, 3700], [860, 3700], [2140, 3700], [2220, 3700],
+      [780, 4700], [860, 4700], [2140, 4700], [2220, 4700],
       [595, 5690], [1450, 5690], [1550, 5690], [2405, 5690]
     ].forEach(function(sbPt) {
       sandbags.push({ x: sbPt[0], y: sbPt[1], hp: 14, maxHp: 14, tier: 1 });
@@ -953,16 +961,16 @@
       });
     }
 
-    var rowYs = [380, 650, 920, 1180, 1420, 1680, 1960, 2140, 2560, 2820, 3060, 3228, 3360, 3550, 3850, 4180, 4650, 5050, 5420, 5720, 5950];
+    var rowYs = [380, 620, 850, 1120, 1380, 1620, 1920, 2160, 2380, 2660, 2848, 2980, 3120, 3250, 3550, 3850, 4260, 4720, 5150, 5500, 5720, 5950];
     var colXs = [320, 595, 820, 1140, 1500, 1860, 2180, 2405, 2680];
 
     var cIdx = 0;
     for (var r = 0; r < rowYs.length; r++) {
       var cy = rowYs[r];
-      var isBattlementRow = (cy === 3228);
-      var isUrbanTrenchRow = (cy === 2560 || cy === 3550 || cy === 4650 || cy === 5720);
-      var isObjectiveRow = (cy === 920 || cy === 1680 || cy === 2820 || cy === 3360 || cy === 4180 || cy === 5050 || cy === 5950);
-      var isHill = cy < 2100;
+      var isBattlementRow = (cy === 2848);
+      var isUrbanTrenchRow = (cy === 3120 || cy === 4720 || cy === 5720);
+      var isObjectiveRow = (cy === 850 || cy === 1620 || cy === 2380 || cy === 2980 || cy === 3250 || cy === 3850 || cy === 5150 || cy === 5950);
+      var isHill = cy < 2600;
       for (var c = 0; c < colXs.length; c++) {
         var cx = colXs[c] + ((isBattlementRow || isUrbanTrenchRow || isObjectiveRow) ? 0 : ((r % 2) * 20 - 10));
         var isGateColumn = (Math.abs(cx - 595) < 60 || Math.abs(cx - 1500) < 90 || Math.abs(cx - 2405) < 60);
@@ -984,11 +992,11 @@
       }
     }
 
-    // Add Bridge Deck Clusters on West Bridge (820, 2350) & East Bridge (2180, 2350)
+    // Bridge Deck Clusters on West Bridge (820, 4510) & East Bridge (2180, 4510)
     [820, 2180].forEach(function(bx) {
-      var cl = { id: cIdx++, x: bx, y: 2340, bonus: 0.55, maxBonus: 0.55, isBattlement: false, nodes: [] };
+      var cl = { id: cIdx++, x: bx, y: 4500, bonus: 0.55, maxBonus: 0.55, isBattlement: false, nodes: [] };
       for (var i = 0; i < 10; i++) {
-        cl.nodes.push({ x: bx + ((i % 2) * 26 - 13), y: 2260 + i * 16, bonus: 0.55, occ: null });
+        cl.nodes.push({ x: bx + ((i % 2) * 26 - 13), y: 4410 + i * 16, bonus: 0.55, occ: null });
       }
       clusters.push(cl);
     });
@@ -1065,12 +1073,12 @@
     grenades.push({ x: sx0, y: sy0, sx: sx0, sy: sy0, tx: tx, ty: ty, team: team, t: 0, dur: 0.85 });
   }
 
-  function clearLOS(x1, y1, x2, y2, shooterOnWall, targetOnWall) {
+  function clearLOS(x1, y1, x2, y2, shooterOnWall, targetOnWall, shooterTeam) {
     for (var i = 0; i < smokes.length; i++) {
       var sm = smokes[i];
       if (pointToSegmentDistSq(sm.x, sm.y, x1, y1, x2, y2) < sm.r * sm.r) return false;
     }
-    return traceWall(x1, y1, x2, y2, shooterOnWall, targetOnWall) === null;
+    return traceWall(x1, y1, x2, y2, shooterOnWall, targetOnWall, shooterTeam) === null;
   }
 
   function createLieutenant(team) {
@@ -1244,44 +1252,44 @@
 
     lieutenants = [createLieutenant(0), createLieutenant(1)];
 
-    // 8 Player Squads (1..8) defending Yuhuatai Hills, Qinhuai Bridges & Zhonghua Gate
+    // 8 Player Squads (1..8) defending Yuhuatai Hills, Zhonghua Gate Wall, and Inner Trenches
     var playerCfg = [
-      [1140, 1680, true,  -1], // Yuhuatai Hill Left Trench
-      [1500, 1680, true,   0], // Yuhuatai Citadel Crest
-      [1860, 1680, false,  1], // Yuhuatai Hill Right Trench
-      [820,  2560, true,  -1], // West Qinhuai Bridgehead Trench
-      [2180, 2560, true,   1], // East Qinhuai Bridgehead Trench
-      [1140, 3228, false, -1], // Zhonghua City Wall Left Bastion
-      [1500, 2820, false,  0], // Zhonghua Outer Plaza
-      [1860, 3228, false,  1]  // Zhonghua City Wall Right Bastion
+      [1140, 1620, true,  -1],
+      [1500, 1620, true,   0],
+      [1860, 1620, false,  1],
+      [880,  2848, false, -1],
+      [1140, 2848, true,   0],
+      [1860, 2848, true,   0],
+      [2120, 2848, false,  1],
+      [1500, 3120, false,  0]
     ];
     playerCfg.forEach(function(c, idx) {
       createSquad(idx, nextSquadNum++, 0, "PLAYER", c[0], c[1], c[2], "HOLD", c[3]);
     });
 
-    // 8 Allied Co-Pilot Squads (9..16)
+    // 8 Allied Co-Pilot Squads (9..16): 3 forward skirmishers in Yuhuatai + 5 defending Gates & Bridges!
     var allyCfg = [
-      [820,  1960, false, -1],
-      [2180, 1960, false,  1],
-      [595,  3228, true,  -1],
-      [2405, 3228, true,   1],
-      [820,  3550, false, -1],
-      [1500, 3550, true,   0],
-      [2180, 3550, false,  1],
-      [1500, 4650, false,  0]
+      [820,  1920, false, -1],
+      [1500, 2380, true,   0],
+      [2180, 1920, false,  1],
+      [595,  3120, true,  -1],
+      [2405, 3120, true,   1],
+      [820,  3850, false, -1],
+      [2180, 3850, false,  1],
+      [1500, 4720, true,   0]
     ];
     allyCfg.forEach(function(c, idx) {
       createSquad(idx + 8, nextSquadNum++, 0, "COPILOT", c[0], c[1], c[2], "HOLD", c[3]);
     });
 
-    // 22 IJA Attacker Squads (220 Soldiers) emerging in the Far Northern Emergence Zone (Y: 220..680)
+    // 22 IJA Attacker Squads (220 Soldiers) emerging in Northern Approaches (Y: 220..680)
     var axCfg = [
       [350,  240,  false, -1], [620,  240,  true,  -1], [900,  240,  false, -1], [1200, 240,  true,   0],
       [1500, 240,  true,   0], [1800, 240,  false,  0], [2100, 240,  true,   1], [2380, 240,  false,  1],
       [2650, 240,  false,  1], [520,  460,  false, -1], [880,  460,  true,  -1], [1220, 460,  false,  0],
       [1500, 460,  true,   0], [1780, 460,  false,  0], [2120, 460,  true,   1], [2480, 460,  false,  1],
       [595,  680,  false, -1], [1020, 680,  true,   0], [1500, 680,  false,  0], [1980, 680,  true,   0],
-      [2405, 680,  false,  1], [1500, 820,  false,  0]
+      [2405, 680,  false,  1], [1500, 780,  false,  0]
     ];
     axCfg.forEach(function(c) {
       createSquad(squads.length, nextSquadNum++, 1, "AXIS", c[0], c[1], c[2], "ADVANCE", c[3]);
@@ -1289,7 +1297,7 @@
 
     spawnThreeEnemyGateTanks();
 
-    cam.x = 1500; cam.y = 2150; cam.z = 0.45; clampCam();
+    cam.x = 1500; cam.y = 2650; cam.z = 0.45; clampCam();
     selectSquad(4, false);
   }
 
@@ -1689,28 +1697,48 @@
     var flg = sq.team === 0 ? getAlliedTargetFlag() : getAxisTargetFlag();
     var wallY = WALL_Y + 48;
 
-    // 1. QINHUAI RIVER BRIDGE CHOKELINE ROUTING (Y: 2220..2480)
-    if (sq.team === 1 && lead.y > 1850 && lead.y < QINHUAI_Y2 + 30 && flags[0].own === 1) {
-      var prefBr = (sq.lane < 0 || (sq.lane === 0 && sq.id % 2 === 0)) ? bridges[0] : bridges[1];
-      // If one bridge barrier is already breached, favor pouring across the breached bridge!
-      if (bridgeBarriers[0].hp <= 0 && bridgeBarriers[1].hp > 0 && Math.abs(lead.x - bridges[0].cx) < 1200) prefBr = bridges[0];
-      if (bridgeBarriers[1].hp <= 0 && bridgeBarriers[0].hp > 0 && Math.abs(lead.x - bridges[1].cx) < 1200) prefBr = bridges[1];
+    // 1. SMART NRA ALLIED AI DOCTRINE:
+    //    Battle in Yuhuatai early on, but retreat back inside the City Gates & Wall Bastions when pressured or if F2 falls!
+    if (sq.team === 0) {
+      var aliveCnt = sq.members.filter(function(m) { return m.st === 0; }).length;
+      var anyGateCritical = gates.some(function(g) { return g.hp < g.maxHp * 0.65; });
 
-      var bBar = bridgeBarriers[prefBr.id];
-      if (Math.abs(lead.x - prefBr.cx) > 120 && lead.y < QINHUAI_Y1) {
-        claimCover(sq, prefBr.cx + rand(-50, 50), 2140);
+      // If squad is outside the city wall (lead.y < WALL_Y) and takes losses, heavy suppression, or F2 is lost -> Retreat to defend the Gates!
+      if (lead.y < WALL_Y && (aliveCnt <= 7 || sq.supAvg > 0.42 || flags[1].own === 1 || anyGateCritical)) {
+        var retreatGate = getNearestGate(lead.x, lead.y);
+        if (lead.y < WALL_Y - 120 && Math.abs(lead.x - retreatGate.cx) > 130) {
+          claimCover(sq, retreatGate.cx + rand(-40, 40), WALL_Y - 90);
+        } else {
+          // Station on the City Wall Battlements (2848) or Gate Trench (3120) to use the wall advantage!
+          claimCover(sq, retreatGate.cx + (sq.id % 2 === 0 ? -160 : 160), (sq.id % 3 === 0) ? 2848 : 3120);
+        }
         return;
-      } else if (bBar.hp > 0) {
-        claimCover(sq, prefBr.cx + rand(-45, 45), 2340);
-        return;
-      } else {
-        claimCover(sq, prefBr.cx + rand(-55, 55), 2560);
+      }
+
+      // Prevent Allied AI squads inside the city from rushing out past the gates if F1/F2 are already overrun by the IJA horde!
+      if (lead.y >= WALL_Y - 20 && (flags[1].own === 1 || anyGateCritical)) {
+        var defTargets = [
+          { x: 880, y: 2848 }, { x: 1140, y: 2848 }, { x: 1860, y: 2848 }, { x: 2120, y: 2848 },
+          { x: 595, y: 3120 }, { x: 1500, y: 3120 }, { x: 2405, y: 3120 },
+          { x: 820, y: 3850 }, { x: 2180, y: 3850 }, { x: 820, y: 4720 }, { x: 2180, y: 4720 }
+        ];
+        // If an interior flag (F4..F8) is contested/lost, counterattack that interior flag; otherwise hold the Gate & Bridge defenses!
+        var interiorThreat = null;
+        for (var fIdx = 3; fIdx < flags.length; fIdx++) {
+          if (flags[fIdx].own !== 0 || flags[fIdx].state === "CONTESTED") { interiorThreat = flags[fIdx]; break; }
+        }
+        if (interiorThreat) {
+          claimCover(sq, interiorThreat.x + rand(-65, 65), interiorThreat.y + rand(-55, 55));
+        } else {
+          var post = defTargets[sq.id % defTargets.length];
+          claimCover(sq, post.x + rand(-35, 35), post.y);
+        }
         return;
       }
     }
 
-    // 2. ZHONGHUA CITY GATE BREACH FUNNELING (Y: 3180)
-    if (sq.team === 1 && lead.y >= QINHUAI_Y2 && lead.y < wallY + 50) {
+    // 2. IJA ZHONGHUA CITY GATE BREACH FUNNELING (Y: 2800)
+    if (sq.team === 1 && lead.y < wallY + 50 && flags[1].own === 1) {
       var breachedGate = null, minBreachDist = Infinity;
       for (var bG = 0; bG < gates.length; bG++) {
         if (gates[bG].hp <= 0) {
@@ -1720,85 +1748,59 @@
       }
       if (breachedGate && (minBreachDist < 950 || gates[sq.lane < 0 ? 0 : (sq.lane > 0 ? 2 : 1)].hp <= 0)) {
         if (lead.y < WALL_Y - 120 && Math.abs(lead.x - breachedGate.cx) > 140) {
-          claimCover(sq, breachedGate.cx + rand(-55, 55), Math.min(3060, lead.y + 280));
+          claimCover(sq, breachedGate.cx + rand(-55, 55), Math.min(2660, lead.y + 280));
           return;
         } else {
-          claimCover(sq, breachedGate.cx + rand(-45, 45), lead.y < wallY ? 3360 : 3550);
+          claimCover(sq, breachedGate.cx + rand(-45, 45), lead.y < wallY ? 2980 : 3250);
           return;
         }
       }
     }
 
-    // 3. Mutual Support
-    var distressedAlly = null, bestDistressScore = 0;
-    var maxSupportRange = sq.isIndependent ? 3200 : 950;
-    for (var i = 0; i < squads.length; i++) {
-      var other = squads[i];
-      if (other === sq || other.team !== sq.team) continue;
-      var ol = other.activeLeader;
-      if (!ol) continue;
-      var dAlly = dist(lead.x, lead.y, ol.x, ol.y);
-      if (dAlly > 90 && dAlly < maxSupportRange && (other.supAvg > 0.30 || other.underAttackT > 0 || other.encircled)) {
-        var score = (other.supAvg * 140 + (other.underAttackT > 0 ? 75 : 0) + (other.encircled ? 90 : 0)) - dAlly * 0.04;
-        if (score > bestDistressScore) {
-          bestDistressScore = score;
-          distressedAlly = ol;
-        }
+    // 3. IJA INTERIOR RIVER BRIDGE CHOKELINE ROUTING (Between F5/F6 at 3850 and F7 at 5150 -> River Y: 4380..4640)
+    if (sq.team === 1 && lead.y > 3950 && lead.y < QINHUAI_Y2 + 40) {
+      var prefBr = (sq.lane < 0 || lead.x < 1500) ? bridges[0] : bridges[1];
+      if (bridgeBarriers[0].hp <= 0 && bridgeBarriers[1].hp > 0 && Math.abs(lead.x - bridges[0].cx) < 1200) prefBr = bridges[0];
+      if (bridgeBarriers[1].hp <= 0 && bridgeBarriers[0].hp > 0 && Math.abs(lead.x - bridges[1].cx) < 1200) prefBr = bridges[1];
+
+      var bBar = bridgeBarriers[prefBr.id];
+      if (Math.abs(lead.x - prefBr.cx) > 120 && lead.y < QINHUAI_Y1) {
+        claimCover(sq, prefBr.cx + rand(-50, 50), 4260);
+        return;
+      } else if (bBar.hp > 0) {
+        claimCover(sq, prefBr.cx + rand(-45, 45), 4500);
+        return;
+      } else {
+        claimCover(sq, prefBr.cx + rand(-55, 55), 4720);
+        return;
       }
     }
 
-    var goalX = flg.x, goalY = flg.y;
-    var isSupporting = false;
-    var targetFlagObj = flg;
-
-    if (distressedAlly && (sq.isIndependent || Math.random() < 0.55)) {
-      var flankAngle = sq.ang + (sq.id % 2 === 0 ? 0.9 : -0.9);
-      goalX = distressedAlly.x + Math.cos(flankAngle) * 140;
-      goalY = distressedAlly.y + Math.sin(flankAngle) * 140;
-      isSupporting = true;
-    } else {
-      var bestFlag = flg, minFlagScore = 999999;
-      for (var f = 0; f < flags.length; f++) {
-        var candF = flags[f];
-        if (sq.team === 1 && candF.id <= 2 && gates.some(function(g) { return g.hp <= 0; })) continue;
-        var needsAction = (sq.team === 0 && (candF.own !== 0 || candF.state === "CONTESTED")) ||
-                          (sq.team === 1 && (candF.own !== 1 || candF.state === "CONTESTED"));
-        if (needsAction) {
-          var df = dist(lead.x, lead.y, candF.x, candF.y);
-          var laneBias = 0;
-          if (candF.id === 4 && (sq.lane < 0 || lead.x < 1150 || sq.id % 3 === 0)) laneBias = -550;
-          if (candF.id === 5 && (sq.lane > 0 || lead.x > 1850 || sq.id % 3 === 2)) laneBias = -550;
-          if (candF.id === 3 && Math.abs(lead.x - 1500) < 450) laneBias = -420;
-          var priorityBias = (sq.isIndependent && candF.state === "CONTESTED") ? -450 : 0;
-          var fScore = df + laneBias + priorityBias + (sq.team === 1 ? candF.y * 0.12 : -candF.y * 0.12);
-          if (fScore < minFlagScore) { minFlagScore = fScore; bestFlag = candF; }
-        }
+    // 4. Objective Selection for IJA Attackers & Forward NRA Units
+    var bestFlag = flg, minFlagScore = 999999;
+    for (var f = 0; f < flags.length; f++) {
+      var candF = flags[f];
+      if (sq.team === 1 && candF.id <= 2 && gates.some(function(g) { return g.hp <= 0; })) continue;
+      var needsAction = (sq.team === 0 && (candF.own !== 0 || candF.state === "CONTESTED")) ||
+                        (sq.team === 1 && (candF.own !== 1 || candF.state === "CONTESTED"));
+      if (needsAction) {
+        var df = dist(lead.x, lead.y, candF.x, candF.y);
+        var laneBias = 0;
+        if (candF.id === 4 && (sq.lane < 0 || lead.x < 1150 || sq.id % 3 === 0)) laneBias = -550;
+        if (candF.id === 5 && (sq.lane > 0 || lead.x > 1850 || sq.id % 3 === 2)) laneBias = -550;
+        if (candF.id === 3 && Math.abs(lead.x - 1500) < 450) laneBias = -420;
+        var fScore = df + laneBias + (sq.team === 1 ? candF.y * 0.12 : -candF.y * 0.12);
+        if (fScore < minFlagScore) { minFlagScore = fScore; bestFlag = candF; }
       }
-      targetFlagObj = bestFlag;
-      goalX = bestFlag.x + (sq.lane * 140);
-      goalY = bestFlag.y;
     }
+    var goalX = bestFlag.x + (sq.lane * 120), goalY = bestFlag.y;
 
-    if (!isSupporting && dist(lead.x, lead.y, targetFlagObj.x, targetFlagObj.y) < 360) {
-      claimCover(sq, targetFlagObj.x + rand(-55, 55), targetFlagObj.y + rand(-55, 55));
+    if (dist(lead.x, lead.y, bestFlag.x, bestFlag.y) < 360) {
+      claimCover(sq, bestFlag.x + rand(-55, 55), bestFlag.y + rand(-55, 55));
       return;
     }
 
-    // Route Allied squads across City Gates & Qinhuai Bridges when counterattacking North
-    if (sq.team === 0 && lead.y > wallY + 40 && goalY < wallY - 40) {
-      var allyGate = getNearestGate(lead.x, lead.y);
-      if (Math.abs(lead.x - allyGate.cx) > 120 && lead.y > 3360) {
-        goalX = allyGate.cx + rand(-40, 40);
-        goalY = 3360;
-      } else {
-        goalX = allyGate.cx + rand(-45, 45);
-        goalY = 3060;
-      }
-    } else if (sq.team === 0 && lead.y > QINHUAI_Y2 && goalY < QINHUAI_Y1) {
-      var allyBr = Math.abs(lead.x - 820) < Math.abs(lead.x - 2180) ? bridges[0] : bridges[1];
-      goalX = allyBr.cx + rand(-40, 40);
-      goalY = 2140;
-    } else if (sq.team === 1 && lead.y > QINHUAI_Y2 && lead.y < wallY - 20 && goalY > wallY + 20) {
+    if (sq.team === 1 && lead.y < wallY - 20 && goalY > wallY + 20) {
       var prefGateIdx = sq.lane < 0 ? 0 : (sq.lane > 0 ? 2 : 1);
       for (var gB = 0; gB < gates.length; gB++) {
         if (gates[gB].hp <= 0 && Math.abs(lead.x - gates[gB].cx) < 950) { prefGateIdx = gB; break; }
@@ -1812,10 +1814,10 @@
           if (dL < minLD) { minLD = dL; nearLad = ladders[lI]; }
         }
         goalX = nearLad.x;
-        goalY = lead.y > 3080 ? 3360 : 3150;
+        goalY = lead.y > WALL_Y - 100 ? 2980 : (WALL_Y - 30);
       } else {
         goalX = tgtGate.cx + rand(-45, 45);
-        goalY = tgtGate.hp > 0 ? 3060 : 3360;
+        goalY = tgtGate.hp > 0 ? 2660 : 2980;
       }
     }
 
@@ -1840,18 +1842,12 @@
       var dFromIdeal = dist(idealX, idealY, cl.x, cl.y);
       var dFromGoal = dist(goalX, goalY, cl.x, cl.y);
       var progressGain = distToGoal - dFromGoal;
-      if (progressGain < 25) continue;
+      if (progressGain < 20) continue;
 
       var danger = getDanger(cl.x, cl.y, sq.team);
       var defiladeBonus = hasWallShadowCover(cl.x, cl.y, sq.team) ? 45 : 0;
 
-      var score = progressGain * 1.65
-                - dFromIdeal * 0.55
-                + cl.bonus * 75
-                + defiladeBonus
-                - danger * (isSupporting ? 0.4 : 1.1)
-                + rand(-15, 15);
-
+      var score = progressGain * 1.65 - dFromIdeal * 0.55 + cl.bonus * 75 + defiladeBonus - danger * 1.1 + rand(-15, 15);
       if (score > bestCScore) {
         bestCScore = score;
         bestCluster = cl;
@@ -2051,13 +2047,14 @@
       if (sq.order === "HOLD" || sq.ammo < 15) sq.ammo = clamp(sq.ammo + 2.5 * dt, 0, 100);
 
       // DESPERATE BANZAI CHARGES: IJA squads pushing Yuhuatai Hills or Qinhuai Bridges frequently trigger Banzai charges!
-      var banzaiChance = (sq.team === 1 && lead.y < 3350) ? 0.018 : 0.006;
-      if (sq.morale > 72 && !sq.isPanicked && sq.chargeT <= 0 && sq.order === "ADVANCE" && Math.random() < banzaiChance) {
+      // ONLY IJA Enemies (sq.team === 1) execute Banzai Charges!
+      if (sq.team === 1 && sq.morale > 72 && !sq.isPanicked && sq.chargeT <= 0 && sq.order === "ADVANCE" && Math.random() < 0.016) {
         sq.chargeT = 8.5;
         sq.morale = 100;
         sq.trumpetPulse = 2.2;
-        shockwaves.push({ x: lead.x, y: lead.y, r: 6, maxR: 55, alpha: 0.85, spd: 90, color: sq.team === 1 ? "#ff473d" : "#ffcc33" });
+        shockwaves.push({ x: lead.x, y: lead.y, r: 6, maxR: 55, alpha: 0.85, spd: 90, color: "#ff473d" });
       }
+
 
       var isAIControlled = (sq.team === 1) || sq.isIndependent || (sq.isCopilot && copilotOn) || (sq.factionType === "PLAYER" && ltControlPlayer);
 
@@ -2619,7 +2616,8 @@
       var wh = traceWall(
         p.prevX, p.prevY, nx, ny,
         p.team === 0 && p.prevY >= WALL_Y - 6 && p.prevY <= WALL_Y + 102,
-        p.penWall
+        p.penWall,
+        p.team
       );
       if (wh) {
         if (wh.obj) {
