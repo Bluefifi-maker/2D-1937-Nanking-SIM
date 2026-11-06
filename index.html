@@ -1,0 +1,3345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>NANKING 1937: Yuhuatai, Qinhuai Bridges &amp; Xiakou Evacuation</title>
+<style>
+  :root {
+    --bg: #0c100c;
+    --panel: rgba(10, 14, 11, 0.85);
+    --brass: #5c7a56;
+    --neon-green: #58ff8a;
+    --cream: #d8e8d4;
+    --blue: #38d6ff;
+    --teal: #34ebba;
+    --gold: #ffcc33;
+    --red: #ff473d;
+    --amber: #ffae33;
+  }
+  * { box-sizing: border-box; user-select: none; -webkit-user-select: none; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: var(--bg);
+    font-family: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+    color: var(--cream);
+    touch-action: none;
+  }
+  #viewportCanvas {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: block; background: #1c2119; z-index: 1;
+  }
+  #vignetteOverlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 6;
+    background: radial-gradient(circle at center, transparent 68%, rgba(0, 0, 0, 0.62) 100%);
+    transition: box-shadow 0.25s ease;
+  }
+  #vignetteOverlay.breach-alarm {
+    box-shadow: inset 0 0 95px rgba(255, 35, 25, 0.78);
+  }
+  #breachBanner {
+    position: fixed; top: 44px; left: 50%; transform: translateX(-50%);
+    background: rgba(155, 16, 16, 0.90); border: 1.5px solid #ff7766;
+    color: #fff; font-size: 11px; font-weight: 800; padding: 4px 14px;
+    border-radius: 4px; z-index: 12; pointer-events: none;
+    letter-spacing: 1px; display: none;
+    box-shadow: 0 0 18px rgba(255, 45, 35, 0.85);
+  }
+
+  /* Easy Red Style Cinematic Intro & Outro Modals */
+  .cinematic-modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(3, 5, 4, 0.96); z-index: 40;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center; padding: 24px;
+  }
+  .cinematic-box {
+    max-width: 640px; border-top: 1px solid rgba(216, 232, 212, 0.25);
+    border-bottom: 1px solid rgba(216, 232, 212, 0.25);
+    padding: 36px 24px;
+  }
+  .cinematic-date {
+    font-size: 12px; letter-spacing: 3px; color: var(--amber);
+    margin-bottom: 10px; font-weight: 700; text-transform: uppercase;
+  }
+  .cinematic-title {
+    font-size: 28px; font-weight: 900; margin-bottom: 20px;
+    letter-spacing: 2px; color: #ffffff;
+  }
+  .cinematic-narrative {
+    font-size: 13.5px; line-height: 1.75; color: #c4d4c0;
+    margin-bottom: 28px; text-align: left;
+  }
+  .cinematic-stats {
+    background: rgba(20, 28, 22, 0.8); border: 1px solid var(--brass);
+    border-radius: 4px; padding: 14px 20px; margin-bottom: 24px;
+    font-size: 13px; line-height: 1.8; color: #e8f5e4; text-align: left;
+  }
+  .cinematic-btn {
+    background: #1a2e1d; color: var(--neon-green); border: 1.5px solid var(--neon-green);
+    border-radius: 4px; padding: 12px 30px; font-size: 13px; font-weight: 800;
+    cursor: pointer; font-family: inherit; letter-spacing: 1.5px;
+    transition: background 0.15s;
+  }
+  .cinematic-btn:hover { background: #28472c; }
+
+  /* Streamlined Decluttered Top HUD */
+  #topHud {
+    position: fixed; top: 8px; left: 10px; right: 10px;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 8px; z-index: 10; pointer-events: none; flex-wrap: wrap;
+  }
+  .hud-card {
+    background: var(--panel);
+    border: 1px solid var(--brass);
+    border-radius: 5px; padding: 4px 10px;
+    pointer-events: auto;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.75);
+    display: flex; align-items: center; gap: 10px;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.4px;
+  }
+  .pill { padding: 2px 6px; border-radius: 3px; font-variant-numeric: tabular-nums; }
+  .p-evac { background: rgba(255, 255, 255, 0.14); border: 1px solid #fff; color: #fff; }
+  .p-wave { background: rgba(255, 174, 51, 0.16); border: 1px solid var(--amber); color: #ffd699; }
+
+  #minimapWrap {
+    position: fixed; top: 46px; left: 10px;
+    background: var(--panel); border: 1px solid var(--brass);
+    border-radius: 5px; padding: 5px; z-index: 10;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.85);
+  }
+  #minimapCanvas {
+    width: 118px; height: 236px;
+    border: 1px solid #456340; border-radius: 2px;
+    background: #101610; cursor: pointer; display: block;
+  }
+  .cam-controls { display: flex; gap: 3px; width: 100%; }
+  .cam-btn {
+    flex: 1; background: #182418; color: var(--neon-green);
+    border: 1px solid #456340; border-radius: 3px;
+    padding: 3px 0; font-size: 8.5px; font-weight: 700; cursor: pointer;
+    font-family: inherit;
+  }
+
+  #commandDeck {
+    position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%);
+    background: var(--panel); border: 1px solid var(--brass);
+    border-radius: 6px; padding: 5px 8px;
+    display: flex; flex-direction: column; gap: 4px;
+    z-index: 10;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.9);
+    width: 98vw; max-width: 960px;
+  }
+  .deck-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px; }
+  .sq-btn {
+    appearance: none; background: #162017; color: var(--cream);
+    border: 1px solid #3d543a; border-radius: 4px;
+    padding: 4px 6px; font-size: 10px; font-weight: 700;
+    cursor: pointer; display: flex; flex-direction: column; align-items: center;
+    min-width: 64px; font-family: inherit;
+  }
+  .sq-btn span.sub { font-size: 8px; font-weight: 500; color: #9ab896; margin-top: 1px; }
+  .sq-btn.active-sq { border-color: var(--blue) !important; background: rgba(56, 214, 255, 0.25) !important; color: #fff !important; }
+  .sq-btn.active-all { border-color: var(--gold) !important; background: rgba(255, 204, 51, 0.25) !important; color: #fff3b0 !important; }
+  .sq-btn.active-copilot { border-color: var(--teal) !important; background: rgba(52, 235, 186, 0.22) !important; color: #b8fff0 !important; }
+  .sq-btn.active-lt { border-color: var(--neon-green) !important; background: rgba(88, 255, 138, 0.28) !important; color: #d8ffe4 !important; }
+  .sq-btn.active-ord { border-color: var(--amber) !important; background: rgba(255, 174, 51, 0.28) !important; color: #ffe7ba !important; }
+  .sq-btn.util-btn { background: #262116; border-color: #8c733e; color: #ffd885; }
+  .sep { width: 1px; height: 22px; background: var(--brass); opacity: 0.6; margin: 0 2px; }
+  @media(max-width: 820px) { .sq-btn { min-width: 52px; padding: 3px 4px; font-size: 9px; } }
+</style>
+</head>
+<body>
+
+<div id="vignetteOverlay"></div>
+<div id="breachBanner">WARNING: DEFENSE LINE CRITICAL / BREACHED!</div>
+
+<!-- EASY RED STYLE INTRO BRIEFING SCREEN -->
+<div id="introModal" class="cinematic-modal">
+  <div class="cinematic-box">
+    <div class="cinematic-date">DECEMBER 12, 1937 // SOUTHERN APPROACHES TO NANKING</div>
+    <div class="cinematic-title">OPERATION: XIAKOU EVACUATION</div>
+    <div class="cinematic-narrative">
+      Imperial Japanese Army divisions have broken through the outer perimeter and are massing north of the heavily fortified high ground of <b>Yuhuatai (Rain Flower Terrace)</b>.<br><br>
+      Elements of the Chinese <b>88th Division (NRA)</b> must hold the Yuhuatai hill redoubts, defend the two fortified <b>Qinhuai River Bridges</b>, and man the <b>Zhonghua City Walls</b>.<br><br>
+      <b>PRIMARY OBJECTIVE:</b> Hold the defensive lines for <b>20:00 minutes</b> while civilian ferries complete the evacuation across the Yangtze River from Xiakou Port. Do not allow civilian casualties to exceed 150.
+    </div>
+    <button class="cinematic-btn" id="bStartMatch">PRESS ANY KEY OR CLICK TO BEGIN</button>
+  </div>
+</div>
+
+<!-- EASY RED STYLE OUTRO SUMMARY SCREEN -->
+<div id="endModal" class="cinematic-modal" style="display:none;">
+  <div class="cinematic-box">
+    <div class="cinematic-date" id="endSubHeader">DECEMBER 1937 // AFTER-ACTION REPORT</div>
+    <div class="cinematic-title" id="endTitle">VICTORY: EVACUATION COMPLETE</div>
+    <div class="cinematic-narrative" id="endDesc" style="text-align:center;"></div>
+    <div class="cinematic-stats" id="endStatsBox"></div>
+    <button class="cinematic-btn" id="bModalReset">REDEPLOY TO THE FRONT</button>
+  </div>
+</div>
+
+<!-- STREAMLINED CRITICAL HUD -->
+<div id="topHud">
+  <div class="hud-card">
+    <span class="pill p-evac" id="uiTimer">HOLD: 20:00</span>
+    <span class="pill p-evac" id="uiCivs">EVACUATED: 0 | CIV KIA: 0/150</span>
+    <span class="pill p-wave" id="uiWave">WAVE: 90s</span>
+  </div>
+  <div class="hud-card" id="uiBarriers" style="color:var(--teal)">
+    BRIDGES: W 100% | E 100% &nbsp;//&nbsp; GATES: W 100% | MAIN 100% | E 100%
+  </div>
+</div>
+
+<div id="minimapWrap">
+  <canvas id="minimapCanvas" width="118" height="236"></canvas>
+  <div class="cam-controls">
+    <button class="cam-btn" id="bZoomIn">+Z</button>
+    <button class="cam-btn" id="bZoomOut">-Z</button>
+    <button class="cam-btn" id="bCenter">SQ</button>
+    <button class="cam-btn" id="bPortCam">PORT</button>
+  </div>
+</div>
+
+<div id="commandDeck">
+  <div class="deck-row">
+    <button class="sq-btn" id="sq0">SQ 1<span class="sub" id="ms0">10/10</span></button>
+    <button class="sq-btn" id="sq1">SQ 2<span class="sub" id="ms1">10/10</span></button>
+    <button class="sq-btn" id="sq2">SQ 3<span class="sub" id="ms2">10/10</span></button>
+    <button class="sq-btn" id="sq3">SQ 4<span class="sub" id="ms3">10/10</span></button>
+    <button class="sq-btn active-sq" id="sq4">SQ 5<span class="sub" id="ms4">10/10</span></button>
+    <button class="sq-btn" id="sq5">SQ 6<span class="sub" id="ms5">10/10</span></button>
+    <button class="sq-btn" id="sq6">SQ 7<span class="sub" id="ms6">10/10</span></button>
+    <button class="sq-btn" id="sq7">SQ 8<span class="sub" id="ms7">10/10</span></button>
+    <div class="sep"></div>
+    <button class="sq-btn" id="bLtControl">LT AI: OFF<span class="sub">SQUADS 1-8</span></button>
+    <button class="sq-btn active-copilot" id="bCopilot">ALLY AI: ON<span class="sub">SQUADS 9-16</span></button>
+    <button class="sq-btn" id="sqAll">ALL SQUADS<span class="sub">SELECT</span></button>
+  </div>
+  <div class="deck-row">
+    <button class="sq-btn" id="ordAdv">ADVANCE<span class="sub">Push Line</span></button>
+    <button class="sq-btn active-ord" id="ordHold">HOLD GROUND<span class="sub">Defend</span></button>
+    <button class="sq-btn" id="ordFlag">OBJECTIVE<span class="sub">Seize Sector</span></button>
+    <button class="sq-btn" id="ordRet">FALL BACK<span class="sub">Smoke Retreat</span></button>
+    <div class="sep"></div>
+    <button class="sq-btn util-btn" id="bSmoke">SMOKE<span class="sub">Screen</span></button>
+    <button class="sq-btn util-btn" id="bDeployAT">AT TRAP<span class="sub">Hedgehog</span></button>
+    <button class="sq-btn util-btn" id="bWallAction">PITCH / REPAIR<span class="sub">Wall &amp; Barrier</span></button>
+    <button class="sq-btn util-btn" id="bArtillery">HOWITZER<span class="sub" id="artSub">READY</span></button>
+    <button class="sq-btn util-btn" id="bWave">CALL WAVE<span class="sub">220 vs 160</span></button>
+    <button class="sq-btn util-btn" id="bReset">RESET<span class="sub">Restart</span></button>
+  </div>
+</div>
+
+<canvas id="viewportCanvas" width="1024" height="768"></canvas>
+
+<script>
+(function() {
+  "use strict";
+
+  /****************************************************************************
+   * 1. EXPANDED THEATRE CONSTANTS (3600 x 7200) & HISTORICAL REALISM TIMINGS
+   ****************************************************************************/
+  // Expanded Geography:
+  // Y: 80..950    -> Japanese Emergence Zone
+  // Y: 950..2250  -> Heavily Fortified Yuhuatai Hills High-Ground Sector
+  // Y: 2520..2800 -> Qinhuai River Moat & 2 Chokepoint Bridges (West X:980, East X:2620)
+  // Y: 3380..3476 -> Zhonghua Fortified City Wall & 3 City Gates
+  // Y: 3500..6100 -> Nanking Urban Sectors & Trenches
+  // Y: 6200..6550 -> Xiakou Evacuation Port & Piers
+  // Y: 6550..7200 -> Yangtze River
+  var W = 3600, H = 7200;
+  var MOAT_Y1 = 2520, MOAT_Y2 = 2800;
+  var WALL_Y = 3428;
+  var RIVER_Y = 6550;
+
+  var SOLDIER_MAX_HP = 100;
+  var LIEUTENANT_MAX_HP = 550;
+  var LIEUTENANT_AURA_R = 460;
+  var ALLIED_TANK_HP = 1350;
+  var AXIS_TANK_HP = 2600;
+  var TANK_SPEED = 21.0;
+  var BRIDGE_BARRIER_MAX_HP = 15000;
+
+  var MISSION_DURATION = 1200.0; // 20:00 Hold
+  var MAX_CIV_KIA_LIMIT = 150;
+
+  var cv = document.getElementById("viewportCanvas"), ctx = cv.getContext("2d");
+  var mCv = document.getElementById("minimapCanvas"), mCtx = mCv.getContext("2d");
+  var sw = window.innerWidth || 1024, sh = window.innerHeight || 768;
+
+  var cam = { x: 1800, y: 2660, z: 0.44, minZ: 0.18, maxZ: 1.45, shake: 0 };
+
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function dSq(x1, y1, x2, y2) { return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1); }
+  function dist(x1, y1, x2, y2) { return Math.sqrt(dSq(x1, y1, x2, y2)); }
+  function normAng(a) { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; }
+
+  var shakeOffX = 0, shakeOffY = 0;
+  function sx(wx) { return (wx - (cam.x + shakeOffX)) * cam.z + sw * 0.5; }
+  function sy(wy) { return (wy - (cam.y + shakeOffY)) * cam.z + sh * 0.5; }
+  function toWorld(px, py) { return { x: (px - sw * 0.5) / cam.z + cam.x, y: (py - sh * 0.5) / cam.z + cam.y }; }
+
+  function addScreenShake(worldX, worldY, intensity) {
+    var d = dist(worldX, worldY, cam.x, cam.y);
+    if (d < 1600) {
+      cam.shake = Math.min(30, cam.shake + (1 - d / 1600) * intensity);
+    }
+  }
+
+  function clampCam() {
+    var hw = (sw * 0.5) / cam.z, hh = (sh * 0.5) / cam.z;
+    cam.x = clamp(cam.x, Math.min(hw, W * 0.5), Math.max(W - hw, W * 0.5));
+    cam.y = clamp(cam.y, Math.min(hh, H * 0.5), Math.max(H - hh, H * 0.5));
+  }
+
+  function resize() {
+    var w = Math.max(300, window.innerWidth || 1024), h = Math.max(300, window.innerHeight || 768);
+    if (cv.width !== w || cv.height !== h) { sw = w; sh = h; cv.width = w; cv.height = h; clampCam(); }
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  // Procedural Surface Textures
+  var patterns = { earth: null, hill: null, cobble: null, brick: null, ruin: null, dock: null };
+  function makePattern(w, h, drawFn) {
+    var c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    drawFn(c.getContext("2d"), w, h);
+    return ctx.createPattern(c, "repeat");
+  }
+  function initPatterns() {
+    patterns.earth = makePattern(64, 64, function(g, w, h) {
+      g.fillStyle = "#22291c"; g.fillRect(0, 0, w, h);
+      for (var i = 0; i < 90; i++) {
+        g.fillStyle = i % 2 === 0 ? "rgba(48,58,38,0.55)" : "rgba(18,22,14,0.55)";
+        g.fillRect((i * 17) % w, (i * 31) % h, 2, 2);
+      }
+    });
+    patterns.hill = makePattern(64, 64, function(g, w, h) {
+      g.fillStyle = "#313b27"; g.fillRect(0, 0, w, h);
+      for (var i = 0; i < 110; i++) {
+        g.fillStyle = i % 3 === 0 ? "rgba(95,90,68,0.38)" : "rgba(25,30,18,0.45)";
+        g.fillRect((i * 23) % w, (i * 29) % h, 2.5, 2.5);
+      }
+    });
+    patterns.cobble = makePattern(32, 32, function(g, w, h) {
+      g.fillStyle = "#353430"; g.fillRect(0, 0, w, h);
+      g.strokeStyle = "#242320"; g.lineWidth = 1;
+      for (var y = 0; y < h; y += 8) {
+        var off = (y / 8) % 2 === 0 ? 0 : 8;
+        for (var x = -8; x < w; x += 16) {
+          g.fillStyle = ((x + y) % 3 === 0) ? "#3e3d38" : "#2f2e2a";
+          g.fillRect(x + off + 1, y + 1, 14, 6);
+          g.strokeRect(x + off, y, 16, 8);
+        }
+      }
+    });
+    patterns.brick = makePattern(32, 16, function(g, w, h) {
+      g.fillStyle = "#3d332c"; g.fillRect(0, 0, w, h);
+      g.strokeStyle = "#1c1613"; g.lineWidth = 1.2;
+      g.strokeRect(0, 0, 16, 8); g.strokeRect(16, 0, 16, 8);
+      g.strokeRect(-8, 8, 16, 8); g.strokeRect(8, 8, 16, 8); g.strokeRect(24, 8, 16, 8);
+    });
+    patterns.ruin = makePattern(24, 24, function(g, w, h) {
+      g.fillStyle = "#453e38"; g.fillRect(0, 0, w, h);
+      g.fillStyle = "#332d28"; g.fillRect(2, 2, 9, 9); g.fillRect(13, 13, 9, 9);
+      g.strokeStyle = "#221e1b"; g.strokeRect(0, 0, w, h);
+    });
+    patterns.dock = makePattern(24, 24, function(g, w, h) {
+      g.fillStyle = "#4a3828"; g.fillRect(0, 0, w, h);
+      g.strokeStyle = "#261b12"; g.lineWidth = 1;
+      for (var y = 0; y < h; y += 6) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+    });
+  }
+  initPatterns();
+
+  // World Arrays & State
+  var walls = [], gates = [], bridges = [], bridgeBarriers = [], ladders = [], roads = [], trenches = [], urbanTrenches = [];
+  var clusters = [], nodes = [], flags = [], piers = [], boats = [], civilians = [];
+  var sandbags = [], atObstacles = [], wireZones = [], wrecks = [], scars = [], particles = [], shockwaves = [], fogClouds = [], artilleryShells = [];
+  var G_COLS = 18, G_ROWS = 36, CW = W / G_COLS, CH = H / G_ROWS, infGrid = [];
+  var squads = [], soldiers = [], tanks = [], lieutenants = [], projectiles = [], grenades = [], smokes = [], ripples = [];
+  var selSq = 4, copilotOn = true, ltControlPlayer = false, nextSquadNum = 1;
+  var alliedArtilleryCd = 0, imperialMortarTimer = 14.0, breachAlarmTimer = 0;
+
+  var missionTimer = MISSION_DURATION;
+  var civsSaved = 0, civsKilled = 0, totalMilKia = 0, civSpawnTimer = 0;
+  var gameStarted = false, gameEnded = false;
+
+  var WAVE_PATTERN = [1, 1, 1, 0];
+  var waveStepIndex = 0;
+  var waveTimer = 90.0;
+
+  var MAX_PROJ = 1100;
+  for (var pInit = 0; pInit < MAX_PROJ; pInit++) {
+    projectiles.push({
+      active: false, isShell: false, penWall: false,
+      x: 0, y: 0, prevX: 0, prevY: 0,
+      vx: 0, vy: 0, team: 0, dmg: 0, supPower: 0, life: 0
+    });
+  }
+
+  function addScar(x, y, r, type) {
+    if (scars.length > 480) scars.shift();
+    scars.push({ x: x, y: y, r: r, type: type });
+  }
+
+  function spawnExplosion(x, y, radius, isHeavy, isFirePitch) {
+    addScar(x, y, radius * 0.75, "crater");
+    shockwaves.push({
+      x: x, y: y, r: 4, maxR: radius * 1.65, alpha: 1.0,
+      spd: isHeavy ? 260 : 190,
+      color: isFirePitch ? "#ff3300" : (isHeavy ? "#ffaa33" : "#ff7722")
+    });
+    var pCount = isHeavy ? 24 : 14;
+    for (var i = 0; i < pCount; i++) {
+      if (particles.length > 600) break;
+      var a = rand(0, Math.PI * 2), sp = rand(30, isHeavy ? 210 : 140);
+      var isFire = isFirePitch || (i < pCount * 0.5);
+      particles.push({
+        x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+        r: rand(2.5, isFire ? 9 : 4.5), life: rand(0.3, isFire ? 0.75 : 0.95), maxLife: 0.95,
+        color: isFire ? (i % 2 === 0 ? "#ffcc33" : "#ff3b11") : "#4a3c2c", drag: 0.92
+      });
+    }
+    if (smokes.length < 52) {
+      smokes.push({ x: x + rand(-8, 8), y: y + rand(-8, 8), r: radius * 0.35, maxR: radius * 1.15, life: isHeavy ? 9.5 : 6.0, isBlack: true });
+    }
+    addScreenShake(x, y, isHeavy ? 18 : 9);
+  }
+
+  function spawnMuzzleSparks(x, y, ang, isHeavy) {
+    if (particles.length > 600) return;
+    for (var i = 0; i < (isHeavy ? 4 : 2); i++) {
+      var a = ang + rand(-0.35, 0.35), sp = rand(40, 110);
+      particles.push({
+        x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+        r: rand(1.5, 3.2), life: rand(0.08, 0.18), maxLife: 0.18, color: "#ffe680", drag: 0.88
+      });
+    }
+  }
+
+  function spawnRicochet(x, y, isDebris) {
+    if (particles.length > 600) return;
+    for (var i = 0; i < 5; i++) {
+      var a = rand(0, Math.PI * 2), sp = rand(35, 125);
+      particles.push({
+        x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+        r: rand(1.5, 3.5), life: rand(0.15, 0.38), maxLife: 0.38,
+        color: isDebris ? "#9c8c74" : "#ffd24d", drag: 0.9
+      });
+    }
+  }
+
+  function callArtilleryBarrage(tx, ty, shellsCount, team, isMortarWarning) {
+    for (var i = 0; i < shellsCount; i++) {
+      var flt = isMortarWarning ? 2.6 : 1.25;
+      artilleryShells.push({
+        tx: clamp(tx + rand(-165, 165), 80, W - 80),
+        ty: clamp(ty + rand(-140, 140), 80, RIVER_Y - 60),
+        delay: rand(0.15, 2.5), flight: flt, maxFlight: flt,
+        team: team, isWarning: Boolean(isMortarWarning)
+      });
+    }
+  }
+
+  function fireBullet(x, y, ang, spd, team, dmg, sup, isShell, life) {
+    for (var i = 0; i < MAX_PROJ; i++) {
+      var p = projectiles[i];
+      if (!p.active) {
+        p.active = true; p.isShell = isShell;
+        p.penWall = isShell || (team === 1 && Math.random() < 0.28);
+        p.x = x; p.y = y; p.prevX = x; p.prevY = y;
+        p.vx = Math.cos(ang) * spd; p.vy = Math.sin(ang) * spd;
+        p.team = team; p.dmg = dmg; p.supPower = sup; p.life = life;
+        return;
+      }
+    }
+  }
+
+  function initGrid() {
+    infGrid = [];
+    for (var i = 0; i < G_COLS * G_ROWS; i++) infGrid.push({ a: 0, e: 0, heat: 0 });
+  }
+
+  function updateGrid(dt) {
+    for (var i = 0; i < infGrid.length; i++) {
+      infGrid[i].a = 0; infGrid[i].e = 0; infGrid[i].heat *= (1 - 0.14 * dt);
+    }
+    for (var j = 0; j < soldiers.length; j++) {
+      var s = soldiers[j];
+      if (s.st !== 0) continue;
+      var gx = clamp(Math.floor(s.x / CW), 0, G_COLS - 1), gy = clamp(Math.floor(s.y / CH), 0, G_ROWS - 1);
+      var cell = infGrid[gy * G_COLS + gx], w = s.role === "HMG" ? 2.5 : 1.0;
+      if (s.team === 0) cell.a += w; else cell.e += w;
+    }
+  }
+
+  function getDanger(wx, wy, team) {
+    var gx = clamp(Math.floor(wx / CW), 0, G_COLS - 1), gy = clamp(Math.floor(wy / CH), 0, G_ROWS - 1);
+    var c = infGrid[gy * G_COLS + gx];
+    return (team === 0 ? c.e : c.a) * 14 + c.heat * 25;
+  }
+
+  function addHeat(wx, wy, val) {
+    var gx = clamp(Math.floor(wx / CW), 0, G_COLS - 1), gy = clamp(Math.floor(wy / CH), 0, G_ROWS - 1);
+    infGrid[gy * G_COLS + gx].heat = clamp(infGrid[gy * G_COLS + gx].heat + val, 0, 32);
+  }
+
+  function isOnBridge(px, py) {
+    if (py < MOAT_Y1 - 12 || py > MOAT_Y2 + 12) return true;
+    for (var i = 0; i < bridges.length; i++) {
+      var br = bridges[i];
+      if (px >= br.x + 8 && px <= br.x + br.w - 8) return true;
+    }
+    return false;
+  }
+
+  function getNearestBridge(wx) {
+    return Math.abs(wx - bridges[0].cx) <= Math.abs(wx - bridges[1].cx) ? bridges[0] : bridges[1];
+  }
+
+  function isOnCityWall(px, py) {
+    if (py < WALL_Y - 54 || py > WALL_Y + 54) return false;
+    for (var i = 0; i < walls.length; i++) {
+      var w = walls[i];
+      if (w.isBattlement && w.hp > 0 && px >= w.x - 4 && px <= w.x + w.w + 4 && py >= w.y - 6 && py <= w.y + w.h + 6) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function isInUrbanTrench(px, py) {
+    for (var i = 0; i < urbanTrenches.length; i++) {
+      var ut = urbanTrenches[i];
+      if (px >= ut.x && px <= ut.x + ut.w && py >= ut.y - 20 && py <= ut.y + 20) return true;
+    }
+    return false;
+  }
+
+  function hasEnfiladeBonus(s) {
+    if (s.team !== 0) return false;
+    if (s.y >= WALL_Y - 95 && s.y <= WALL_Y + 190) {
+      for (var i = 0; i < gates.length; i++) {
+        var g = gates[i];
+        var distX = Math.abs(s.x - g.cx);
+        if (distX >= g.w * 0.45 && distX <= g.w * 0.5 + 240) return true;
+      }
+    }
+    return false;
+  }
+
+  function isUnderLieutenantAura(px, py, team) {
+    var lt = lieutenants[team];
+    if (!lt || !lt.alive) return false;
+    return dSq(px, py, lt.x, lt.y) <= LIEUTENANT_AURA_R * LIEUTENANT_AURA_R;
+  }
+
+  function hasWallShadowCover(px, py, team) {
+    var testY = py + (team === 0 ? -42 : 42);
+    for (var i = 0; i < walls.length; i++) {
+      var w = walls[i];
+      if (w.hp > 0 && px >= w.x - 10 && px <= w.x + w.w + 10 && testY >= w.y - 10 && testY <= w.y + w.h + 10) return true;
+    }
+    for (var b = 0; b < bridgeBarriers.length; b++) {
+      var bb = bridgeBarriers[b];
+      if (bb.hp > 0 && px >= bb.x - 10 && px <= bb.x + bb.w + 10 && testY >= bb.y - 15 && testY <= bb.y + bb.h + 15) return true;
+    }
+    return isInUrbanTrench(px, py);
+  }
+  function getOverlappingWall(px, py, pad, unitType, unitObj) {
+    // 1. Check 15,000 HP Bridge Sandbag Barriers (Blocks Axis until destroyed; Allies can pass)
+    for (var bI = 0; bI < bridgeBarriers.length; bI++) {
+      var bb = bridgeBarriers[bI];
+      if (bb.hp <= 0) continue;
+      if (px + pad > bb.x && px - pad < bb.x + bb.w && py + pad > bb.y && py - pad < bb.y + bb.h) {
+        if (unitType === "SOLDIER" && unitObj && unitObj.team === 0) continue;
+        return bb;
+      }
+    }
+
+    // 2. Check 3 City Gates
+    for (var gI = 0; gI < gates.length; gI++) {
+      var g = gates[gI];
+      if (g.hp <= 0) continue;
+      if (px + pad > g.x && px - pad < g.x + g.w && py + pad > g.y && py - pad < g.y + g.h) {
+        if (unitType === "SOLDIER" && unitObj && unitObj.team === 0) continue;
+        return g;
+      }
+    }
+
+    // 3. Check Walls & Battlements
+    for (var i = 0; i < walls.length; i++) {
+      var w = walls[i];
+      if (w.hp <= 0) continue;
+      if (unitType === "TANK" && w.t === 0) continue;
+      if (px + pad > w.x && px - pad < w.x + w.w && py + pad > w.y && py - pad < w.y + w.h) {
+        if (w.isBattlement && unitType === "SOLDIER" && unitObj) {
+          if (unitObj.team === 0 || unitObj.onWall || unitObj.climbingLadder) continue;
+        }
+        return w;
+      }
+    }
+
+    // 4. Check Anti-Tank Obstacles
+    for (var aI = 0; aI < atObstacles.length; aI++) {
+      var at = atObstacles[aI];
+      if (at.hp <= 0) continue;
+      if (px + pad > at.x - 18 && px - pad < at.x + 18 && py + pad > at.y - 12 && py + pad < at.y + 12) {
+        if (unitType === "SOLDIER" && unitObj && unitObj.team === 0) continue;
+        return at;
+      }
+    }
+
+    // 5. Check Soft Sandbags & Wrecks
+    if (unitType !== "TANK") {
+      for (var j = 0; j < sandbags.length; j++) {
+        var s = sandbags[j];
+        if (s.hp <= 0) continue;
+        if (px + pad > s.x - 15 && px - pad < s.x + 15 && py + pad > s.y - 8 && py - pad < s.y + 8) {
+          if (unitType === "SOLDIER" && unitObj && unitObj.team === 0) continue;
+          return s;
+        }
+      }
+      for (var k = 0; k < wrecks.length; k++) {
+        var wr = wrecks[k];
+        if (wr.crushed) continue;
+        if (px + pad > wr.x - 16 && px - pad < wr.x + 16 && py + pad > wr.y - 11 && py - pad < wr.y + 11) return wr;
+      }
+    }
+
+    return null;
+  }
+
+  function isInBarbedWire(px, py) {
+    for (var i = 0; i < wireZones.length; i++) {
+      var wz = wireZones[i];
+      if (px >= wz.x && px <= wz.x + wz.w && py >= wz.y && py <= wz.y + wz.h) return true;
+    }
+    return false;
+  }
+
+  function ensureClearPos(obj, pad, unitType) {
+    obj.x = clamp(obj.x, 40, W - 40);
+    var maxLandY = RIVER_Y - 18;
+    for (var pI = 0; pI < piers.length; pI++) {
+      if (Math.abs(obj.x - piers[pI].cx) < piers[pI].w * 0.45) {
+        maxLandY = piers[pI].y + piers[pI].h - 12;
+      }
+    }
+    obj.y = clamp(obj.y, 45, maxLandY);
+
+    // Keep land units out of the Qinhuai River Moat unless crossing on West or East Bridge!
+    if (obj.y > MOAT_Y1 - pad && obj.y < MOAT_Y2 + pad) {
+      if (!isOnBridge(obj.x, obj.y)) {
+        var nearBr = getNearestBridge(obj.x);
+        if (Math.abs(obj.x - nearBr.cx) < nearBr.w * 0.68) {
+          obj.x = clamp(obj.x, nearBr.x + pad + 6, nearBr.x + nearBr.w - pad - 6);
+        } else {
+          var dNorth = Math.abs(obj.y - MOAT_Y1), dSouth = Math.abs(MOAT_Y2 - obj.y);
+          obj.y = dNorth < dSouth ? (MOAT_Y1 - pad - 2) : (MOAT_Y2 + pad + 2);
+        }
+      }
+    }
+
+    for (var iter = 0; iter < 4; iter++) {
+      var w = getOverlappingWall(obj.x, obj.y, pad, unitType || "SOLDIER", obj);
+      if (!w) break;
+      var wX = w.w ? w.x : w.x - 16, wY = w.h ? w.y : w.y - 10;
+      var wW = w.w ? w.w : 32, wH = w.h ? w.h : 20;
+      var dLeft = (obj.x + pad) - wX;
+      var dRight = (wX + wW) - (obj.x - pad);
+      var dTop = (obj.y + pad) - wY;
+      var dBot = (wY + wH) - (obj.y - pad);
+      var minD = Math.min(dLeft, dRight, dTop, dBot);
+      if (minD === dLeft) obj.x = wX - pad - 2;
+      else if (minD === dRight) obj.x = wX + wW + pad + 2;
+      else if (minD === dTop) obj.y = wY - pad - 2;
+      else obj.y = wY + wH + pad + 2;
+    }
+  }
+
+  function claimCover(sq, wx, wy) {
+    sq.wx = clamp(wx, 60, W - 60); sq.wy = clamp(wy, 75, RIVER_Y - 25);
+    var safePt = { x: sq.wx, y: sq.wy, team: sq.team };
+    ensureClearPos(safePt, 10, "SOLDIER");
+    sq.wx = safePt.x; sq.wy = safePt.y;
+
+    sq.members.forEach(function(m) { if (m.node) { m.node.occ = null; m.node = null; } });
+    var best = null, bestScore = -99999;
+    for (var i = 0; i < clusters.length; i++) {
+      var c = clusters[i], d = dist(sq.wx, sq.wy, c.x, c.y);
+      if (d > 350) continue;
+      if (c.isBattlement && sq.team === 1 && d > 95) continue;
+      // Do not snap across the river moat or across the city wall
+      if (sq.wy > WALL_Y + 25 && c.y < WALL_Y - 25) continue;
+      if (sq.wy < WALL_Y - 25 && c.y > WALL_Y + 25) continue;
+      if (sq.wy > MOAT_Y2 && c.y < MOAT_Y1) continue;
+      if (sq.wy < MOAT_Y1 && c.y > MOAT_Y2) continue;
+
+      var free = 0;
+      for (var k = 0; k < c.nodes.length; k++) if (!c.nodes[k].occ) free++;
+      var defiladeBonus = hasWallShadowCover(c.x, c.y, sq.team) ? 35 : 0;
+      var sc = (350 - d) + c.bonus * 85 + free * 8 + defiladeBonus - getDanger(c.x, c.y, sq.team) * 0.45;
+      if (sc > bestScore) { bestScore = sc; best = c; }
+    }
+    sq.cluster = best;
+    if (!best) return;
+    sq.wx = best.x + rand(-18, 18); sq.wy = best.y + rand(-18, 18);
+    sq.members.forEach(function(m) {
+      if (m.st !== 0) return;
+      for (var j = 0; j < best.nodes.length; j++) {
+        if (!best.nodes[j].occ) { best.nodes[j].occ = m; m.node = best.nodes[j]; break; }
+      }
+    });
+  }
+
+  function segRectHit(x1, y1, x2, y2, rx, ry, rw, rh) {
+    var dx = x2 - x1, dy = y2 - y1, t0 = 0, t1 = 1;
+    var p = [-dx, dx, -dy, dy], q = [x1 - rx, rx + rw - x1, y1 - ry, ry + rh - y1];
+    for (var i = 0; i < 4; i++) {
+      if (p[i] === 0) { if (q[i] < 0) return null; }
+      else {
+        var t = q[i] / p[i];
+        if (p[i] < 0) { if (t > t1) return null; if (t > t0) t0 = t; }
+        else { if (t < t0) return null; if (t < t1) t1 = t; }
+      }
+    }
+    return t0 <= t1 ? t0 : null;
+  }
+
+  function traceWall(x1, y1, x2, y2, shooterOnWall, ignoreBattlements) {
+    var bestT = 2, hx = x2, hy = y2, hitObj = null;
+    var minX = Math.min(x1, x2), maxX = Math.max(x1, x2), minY = Math.min(y1, y2), maxY = Math.max(y1, y2);
+
+    // Bridge Sandbag Barriers (15,000 HP)
+    for (var bI = 0; bI < bridgeBarriers.length; bI++) {
+      var bb = bridgeBarriers[bI];
+      if (bb.hp <= 0 || shooterOnWall) continue;
+      if (maxX < bb.x || minX > bb.x + bb.w || maxY < bb.y || minY > bb.y + bb.h) continue;
+      var tb = segRectHit(x1, y1, x2, y2, bb.x, bb.y, bb.w, bb.h);
+      if (tb !== null && tb < bestT) { bestT = tb; hx = x1 + (x2 - x1) * tb; hy = y1 + (y2 - y1) * tb; hitObj = bb; }
+    }
+
+    for (var gI = 0; gI < gates.length; gI++) {
+      var g = gates[gI];
+      if (g.hp <= 0 || shooterOnWall) continue;
+      if (maxX < g.x || minX > g.x + g.w || maxY < g.y || minY > g.y + g.h) continue;
+      var tg = segRectHit(x1, y1, x2, y2, g.x, g.y, g.w, g.h);
+      if (tg !== null && tg < bestT) { bestT = tg; hx = x1 + (x2 - x1) * tg; hy = y1 + (y2 - y1) * tg; hitObj = g; }
+    }
+
+    for (var i = 0; i < walls.length; i++) {
+      var w = walls[i];
+      if (w.hp <= 0) continue;
+      if (w.isBattlement && (shooterOnWall || ignoreBattlements)) continue;
+      if (maxX < w.x || minX > w.x + w.w || maxY < w.y || minY > w.y + w.h) continue;
+      var t = segRectHit(x1, y1, x2, y2, w.x, w.y, w.w, w.h);
+      if (t !== null && t < bestT) { bestT = t; hx = x1 + (x2 - x1) * t; hy = y1 + (y2 - y1) * t; hitObj = w; }
+    }
+
+    for (var aI = 0; aI < atObstacles.length; aI++) {
+      var at = atObstacles[aI];
+      if (at.hp <= 0) continue;
+      if (maxX < at.x - 18 || minX > at.x + 18 || maxY < at.y - 11 || minY > at.y + 11) continue;
+      var ta = segRectHit(x1, y1, x2, y2, at.x - 18, at.y - 11, 36, 22);
+      if (ta !== null && ta < bestT) { bestT = ta; hx = x1 + (x2 - x1) * ta; hy = y1 + (y2 - y1) * ta; hitObj = at; }
+    }
+
+    for (var j = 0; j < sandbags.length; j++) {
+      var s = sandbags[j];
+      if (s.hp <= 0) continue;
+      if (maxX < s.x - 16 || minX > s.x + 16 || maxY < s.y - 9 || minY > s.y + 9) continue;
+      var ts = segRectHit(x1, y1, x2, y2, s.x - 16, s.y - 9, 32, 18);
+      if (ts !== null && ts < bestT) { bestT = ts; hx = x1 + (x2 - x1) * ts; hy = y1 + (y2 - y1) * ts; hitObj = s; }
+    }
+    return bestT <= 1 ? { x: hx, y: hy, obj: hitObj } : null;
+  }
+
+  function pointToSegmentDistSq(px, py, x1, y1, x2, y2) {
+    var l2 = dSq(x1, y1, x2, y2);
+    if (l2 === 0) return dSq(px, py, x1, y1);
+    var t = clamp(((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2, 0, 1);
+    return dSq(px, py, x1 + t * (x2 - x1), y1 + t * (y2 - y1));
+  }
+
+  function spawnCivilianGroup() {
+    if (civilians.length > 75) return;
+    for (var pIdx = 0; pIdx < piers.length; pIdx++) {
+      var pr = piers[pIdx];
+      for (var c = 0; c < 3; c++) {
+        civilians.push({
+          x: pr.cx + rand(-95, 95),
+          y: rand(6180, 6420),
+          pierIdx: pIdx,
+          hp: 40,
+          alive: true,
+          color: ["#f5ebd6", "#d8cfc2", "#c2d1db", "#e8d5b5"][(pIdx + c) % 4]
+        });
+      }
+    }
+  }
+
+  function buildMap() {
+    walls = []; gates = []; bridges = []; bridgeBarriers = []; ladders = []; roads = []; trenches = []; urbanTrenches = [];
+    clusters = []; nodes = []; piers = []; boats = []; civilians = [];
+    sandbags = []; atObstacles = []; wireZones = []; wrecks = []; scars = []; particles = []; shockwaves = []; fogClouds = []; artilleryShells = [];
+    initGrid();
+
+    // 10 Multi-Stage Objectives from Japanese Emergence Zone -> Yuhuatai Hills -> Qinhuai Bridges -> City Gates -> Port
+    flags = [
+      { id: 0, name: "F1 SOUTHERN APPROACHES",  x: 1800, y: 650,  r: 170, own: 1, timer: -30.0, state: "AXIS" },
+      { id: 1, name: "F2 YUHUATAI WEST RIDGE",  x: 1050, y: 1450, r: 170, own: 0, timer: 30.0,  state: "ALLIES" },
+      { id: 2, name: "F3 YUHUATAI EAST TERRACE",x: 2550, y: 1450, r: 170, own: 0, timer: 30.0,  state: "ALLIES" },
+      { id: 3, name: "F4 YUHUATAI CITADEL TOP", x: 1800, y: 2020, r: 185, own: 0, timer: 30.0,  state: "ALLIES" },
+      { id: 4, name: "F5 WEST QINHUAI BRIDGE",  x: 980,  y: 2940, r: 165, own: 0, timer: 30.0,  state: "ALLIES" },
+      { id: 5, name: "F6 EAST QINHUAI BRIDGE",  x: 2620, y: 2940, r: 165, own: 0, timer: 30.0,  state: "ALLIES" },
+      { id: 6, name: "F7 ZHONGHUA GATE PLAZA",  x: 1800, y: 3680, r: 180, own: 0, timer: 30.0,  state: "ALLIES" },
+      { id: 7, name: "F8 WEST ARSENAL WARD",    x: 980,  y: 4450, r: 170, own: 0, timer: 30.0,  state: "ALLIES" },
+      { id: 8, name: "F9 EAST COMMERCIAL WARD", x: 2620, y: 4450, r: 170, own: 0, timer: 30.0,  state: "ALLIES" },
+      { id: 9, name: "F10 XIAKOU PORT PLAZA",   x: 1800, y: 6260, r: 210, own: 0, timer: 30.0,  state: "ALLIES" }
+    ];
+
+    // 2 Strategic Bridges across Qinhuai River Moat (Y: 2520..2800)
+    bridges = [
+      { id: 0, name: "WEST BRIDGE", x: 810,  y: MOAT_Y1 - 15, w: 340, h: (MOAT_Y2 - MOAT_Y1) + 30, cx: 980,  cy: 2660 },
+      { id: 1, name: "EAST BRIDGE", x: 2450, y: MOAT_Y1 - 15, w: 340, h: (MOAT_Y2 - MOAT_Y1) + 30, cx: 2620, cy: 2660 }
+    ];
+
+    // Fortify BOTH Bridges with 15,000 HP Sandbag Barriers & Barbed Wire
+    bridges.forEach(function(br, idx) {
+      bridgeBarriers.push({
+        id: idx, name: br.name + " BARRIER",
+        x: br.x + 14, y: MOAT_Y2 - 36, w: br.w - 28, h: 42,
+        cx: br.cx, cy: MOAT_Y2 - 15,
+        hp: BRIDGE_BARRIER_MAX_HP, maxHp: BRIDGE_BARRIER_MAX_HP,
+        isBridgeBarrier: true, breachedNotified: false
+      });
+      // Barbed wire entanglements on the North and Middle approaches of each bridge
+      wireZones.push({ x: br.x + 16, y: MOAT_Y1 + 18, w: br.w - 32, h: 34 });
+      wireZones.push({ x: br.x + 16, y: MOAT_Y1 + 115, w: br.w - 32, h: 34 });
+    });
+
+    roads = [
+      { x: 1650, y: 120,  w: 300, h: 2400 }, // North Central Approach to Moat
+      { x: 1650, y: 2800, w: 300, h: 3750 }, // South Central Boulevard from Moat to Central Pier
+      { x: 840,  y: 120,  w: 280, h: 6430 }, // West Highway across West Bridge & West Gate to West Pier
+      { x: 2480, y: 120,  w: 280, h: 6430 }, // East Highway across East Bridge & East Gate to East Pier
+      { x: 240,  y: 2340, w: 3120, h: 125 }, // Pre-River Transverse Road
+      { x: 240,  y: 2920, w: 3120, h: 130 }, // Post-River Transverse Road
+      { x: 240,  y: 3620, w: 3120, h: 135 },
+      { x: 240,  y: 4400, w: 3120, h: 140 },
+      { x: 240,  y: 5350, w: 3120, h: 140 },
+      { x: 240,  y: 6200, w: 3120, h: 240 }  // Xiakou Port Waterfront Quay
+    ];
+
+    piers = [
+      { id: 0, name: "WEST PIER",    x: 910,  y: 6530, w: 140, h: 220, cx: 980,  dockY: 6740 },
+      { id: 1, name: "CENTRAL PIER", x: 1710, y: 6530, w: 180, h: 235, cx: 1800, dockY: 6755 },
+      { id: 2, name: "EAST PIER",    x: 2550, y: 6530, w: 140, h: 220, cx: 2620, dockY: 6740 }
+    ];
+
+    piers.forEach(function(pr, idx) {
+      boats.push({
+        id: idx, pier: pr,
+        x: pr.cx, y: pr.dockY + 45,
+        state: "BOARDING",
+        timer: 4.0 + idx * 1.5,
+        onboard: 0, capacity: 12
+      });
+    });
+
+    // Multi-tiered Yuhuatai Hills Earthwork Trenches
+    [820, 1140, 1460, 1780, 2120, 2380].forEach(function(ty, idx) {
+      var pts = [];
+      for (var x = 260; x <= 3340; x += 95) {
+        pts.push({ x: x, y: ty + Math.sin(x * 0.009 + idx * 1.3) * 32 });
+      }
+      trenches.push(pts);
+    });
+
+    urbanTrenches = [
+      { x: 740,  y: 2865, w: 480,  label: "WEST BRIDGEHEAD TRENCH" },
+      { x: 2380, y: 2865, w: 480,  label: "EAST BRIDGEHEAD TRENCH" },
+      { x: 520,  y: 3760, w: 540,  label: "WEST GATE TRENCH" },
+      { x: 1480, y: 3760, w: 640,  label: "MAIN PLAZA TRENCH" },
+      { x: 2540, y: 3760, w: 540,  label: "EAST GATE TRENCH" },
+      { x: 560,  y: 4320, w: 840,  label: "ARSENAL CHOKELINE" },
+      { x: 2200, y: 4320, w: 840,  label: "COMMERCIAL CHOKELINE" },
+      { x: 1080, y: 5150, w: 1440, label: "CITADEL INNER TRENCH" },
+      { x: 460,  y: 6020, w: 2680, label: "PORT PERIMETER TRENCH" }
+    ];
+
+    // Additional Hill & Gate Wire Entanglements
+    [
+      { x: 420,  y: 1280, w: 520, h: 34 },
+      { x: 1540, y: 1280, w: 520, h: 34 },
+      { x: 2660, y: 1280, w: 520, h: 34 },
+      { x: 1180, y: 1860, w: 1240, h: 34 },
+      { x: 1180, y: 3240, w: 440, h: 34 },
+      { x: 1980, y: 3240, w: 440, h: 34 }
+    ].forEach(function(wz) { wireZones.push(wz); });
+
+    wrecks = [
+      { x: 1420, y: 1620, ang: 0.42, crushed: false },
+      { x: 2180, y: 1620, ang: -0.65, crushed: false },
+      { x: 980,  y: 2440, ang: 0.18, crushed: false },
+      { x: 2620, y: 2440, ang: -0.25, crushed: false },
+      { x: 1520, y: 3260, ang: 0.55, crushed: false },
+      { x: 2080, y: 3940, ang: -0.35, crushed: false }
+    ];
+
+    for (var scI = 0; scI < 65; scI++) {
+      addScar(rand(260, W - 260), rand(350, 5900), rand(14, 36), "crater");
+    }
+
+    // 3 Fortified City Gates along Y = 3380..3476
+    gates = [
+      { id: 0, name: "WEST FLANK GATE",    x: 680,  y: 3380, w: 220, h: 96, cx: 790,  cy: WALL_Y, hp: 20000, maxHp: 20000, isGate: true, breachedNotified: false },
+      { id: 1, name: "ZHONGHUA MAIN GATE", x: 1620, y: 3380, w: 360, h: 96, cx: 1800, cy: WALL_Y, hp: 30000, maxHp: 30000, isGate: true, breachedNotified: false },
+      { id: 2, name: "EAST FLANK GATE",    x: 2700, y: 3380, w: 220, h: 96, cx: 2810, cy: WALL_Y, hp: 20000, maxHp: 20000, isGate: true, breachedNotified: false }
+    ];
+
+    // Yuhuatai Concrete Pillboxes & Zhonghua City Wall Battlements
+    [
+      // Yuhuatai Hills Concrete Bunkers & Redoubts
+      { x: 640,  y: 1060, w: 110, h: 46, t: 0, hp: 260, maxHp: 260, isBattlement: false },
+      { x: 1320, y: 1060, w: 110, h: 46, t: 0, hp: 260, maxHp: 260, isBattlement: false },
+      { x: 2170, y: 1060, w: 110, h: 46, t: 0, hp: 260, maxHp: 260, isBattlement: false },
+      { x: 2850, y: 1060, w: 110, h: 46, t: 0, hp: 260, maxHp: 260, isBattlement: false },
+      { x: 960,  y: 1580, w: 120, h: 48, t: 0, hp: 280, maxHp: 280, isBattlement: false },
+      { x: 1740, y: 1580, w: 120, h: 48, t: 0, hp: 280, maxHp: 280, isBattlement: false },
+      { x: 2520, y: 1580, w: 120, h: 48, t: 0, hp: 280, maxHp: 280, isBattlement: false },
+      { x: 1340, y: 2120, w: 115, h: 46, t: 0, hp: 280, maxHp: 280, isBattlement: false },
+      { x: 2145, y: 2120, w: 115, h: 46, t: 0, hp: 280, maxHp: 280, isBattlement: false },
+      // Walkable City Wall Battlements (Y: 3380..3476)
+      { x: 0,    y: 3380, w: 680, h: 96, t: 1, hp: 5000, maxHp: 5000, isBattlement: true },
+      { x: 900,  y: 3380, w: 720, h: 96, t: 1, hp: 6000, maxHp: 6000, isBattlement: true },
+      { x: 1980, y: 3380, w: 720, h: 96, t: 1, hp: 6000, maxHp: 6000, isBattlement: true },
+      { x: 2920, y: 3380, w: 680, h: 96, t: 1, hp: 5000, maxHp: 5000, isBattlement: true }
+    ].forEach(function(b) { walls.push(b); });
+
+    // Siege Ladders along the City Wall
+    [380, 1120, 1420, 2180, 2480, 3220].forEach(function(lx, idx) {
+      ladders.push({
+        id: idx, x: lx, topY: 3376, botY: 3482,
+        active: false, hp: 220, maxHp: 220, pitchT: 0
+      });
+    });
+
+    // Urban Ruins inside Nanking
+    [3920, 4620, 5280, 5720].forEach(function(ry, rIdx) {
+      [280, 1240, 2160, 3120].forEach(function(cx, cIdx) {
+        walls.push({ x: cx, y: ry, w: 185, h: 150, t: 2, s: (rIdx + cIdx) % 2, hp: 260, maxHp: 260, isBattlement: false });
+      });
+    });
+
+    // Additional Tactical Sandbag Positions on Hills, Bridges & Gates
+    [
+      [1010, 1410], [1090, 1410], [2510, 1410], [2590, 1410], [1750, 1980], [1850, 1980],
+      [920, 2850], [1040, 2850], [2560, 2850], [2680, 2850],
+      [740, 3290], [840, 3290], [1740, 3290], [1860, 3290], [2760, 3290], [2860, 3290],
+      [980, 5990], [1740, 5990], [1860, 5990], [2620, 5990]
+    ].forEach(function(sbPt) {
+      sandbags.push({ x: sbPt[0], y: sbPt[1], hp: 16, maxHp: 16, tier: 1 });
+    });
+
+    for (var fg = 0; fg < 18; fg++) {
+      fogClouds.push({
+        x: rand(0, W), y: rand(0, H), r: rand(240, 460),
+        vx: rand(6, 16), vy: rand(-3, 5), alpha: rand(0.05, 0.11)
+      });
+    }
+
+    // Cover Clusters spanning the entire 3600x7200 battlefield
+    var rowYs = [380, 680, 980, 1260, 1520, 1800, 2060, 2360, 2660, 2900, 3180, 3428, 3560, 3760, 4120, 4450, 4880, 5350, 6020, 6280];
+    var colXs = [380, 790, 980, 1380, 1800, 2220, 2620, 2810, 3220];
+
+    var cIdx = 0;
+    for (var r = 0; r < rowYs.length; r++) {
+      var cy = rowYs[r];
+      var isMoatRow = (cy === 2660);
+      var isBattlementRow = (cy === WALL_Y);
+      var isUrbanTrenchRow = (cy === 2900 || cy === 3760 || cy === 5150 || cy === 6020);
+      var isHill = cy < 2450;
+
+      for (var c = 0; c < colXs.length; c++) {
+        var cx = colXs[c];
+        if (isMoatRow && Math.abs(cx - 980) > 60 && Math.abs(cx - 2620) > 60) continue; // Only place moat nodes on the 2 Bridges!
+        var isGateColumn = (Math.abs(cx - 790) < 70 || Math.abs(cx - 1800) < 100 || Math.abs(cx - 2810) < 70);
+        var isBattlementCluster = isBattlementRow && !isGateColumn;
+        if (!isBattlementRow && !isMoatRow && getOverlappingWall(cx, cy, 26, "SOLDIER", { team: 0 })) continue;
+
+        var bonus = isBattlementCluster ? 0.80 : (isUrbanTrenchRow ? 0.70 : (isHill ? 0.72 : 0.62));
+        var cl = { id: cIdx++, x: cx, y: cy, bonus: bonus, maxBonus: bonus, isBattlement: isBattlementCluster, nodes: [] };
+        for (var i = 0; i < 10; i++) {
+          var a = (i / 10) * Math.PI * 2 + (cIdx % 3) * 0.2, rad = isBattlementCluster ? (14 + (i % 2) * 8) : (22 + (i % 3) * 9);
+          var nd = {
+            x: cx + Math.cos(a) * rad,
+            y: isBattlementCluster ? clamp(cy + Math.sin(a) * rad * 0.45, 3392, 3464) : (cy + Math.sin(a) * rad * 0.85),
+            bonus: bonus, occ: null
+          };
+          cl.nodes.push(nd); nodes.push(nd);
+        }
+        clusters.push(cl);
+      }
+    }
+
+    for (var initC = 0; initC < 4; initC++) spawnCivilianGroup();
+  }
+
+  /****************************************************************************
+   * 2. SQUADS, BRAVE LIEUTENANTS & 220 vs 160 WAVE REINFORCEMENTS
+   ****************************************************************************/
+  var SKIRMISH_OFFSETS = [
+    { fx: 0, fy: 0 }, { fx: 16, fy: -22 }, { fx: 16, fy: 22 }, { fx: -10, fy: -38 }, { fx: -22, fy: 0 },
+    { fx: -10, fy: 38 }, { fx: 26, fy: -46 }, { fx: 28, fy: -8 }, { fx: 28, fy: 12 }, { fx: 26, fy: 46 }
+  ];
+  var WEDGE_OFFSETS = [
+    { fx: 24, fy: 0 }, { fx: 10, fy: -18 }, { fx: 10, fy: 18 }, { fx: -4, fy: -34 }, { fx: -4, fy: 0 },
+    { fx: -4, fy: 34 }, { fx: -18, fy: -50 }, { fx: -18, fy: -16 }, { fx: -18, fy: 16 }, { fx: -18, fy: 50 }
+  ];
+
+  function getAlliedTargetFlag() {
+    for (var i = 0; i < flags.length; i++) if (flags[i].own !== 0) return flags[i];
+    return flags[0];
+  }
+
+  function getAxisTargetFlag() {
+    var bothBridgesBreached = bridgeBarriers.every(function(b) { return b.hp <= 0; });
+    if (bothBridgesBreached) {
+      for (var j = 4; j < flags.length; j++) if (flags[j].own !== 1) return flags[j];
+    }
+    for (var i = 0; i < flags.length; i++) if (flags[i].own !== 1) return flags[i];
+    return flags[flags.length - 1];
+  }
+
+  function getNearestGate(wx, wy) {
+    var bestG = gates[1], minD = Infinity;
+    for (var i = 0; i < gates.length; i++) {
+      var d = dist(wx, wy, gates[i].cx, gates[i].cy);
+      if (d < minD) { minD = d; bestG = gates[i]; }
+    }
+    return bestG;
+  }
+
+  function spawnSmoke(x, y) {
+    if (smokes.length < 52) smokes.push({ x: x + rand(-10, 10), y: y + rand(-10, 10), r: 18, maxR: 84, life: 14.0, isBlack: false });
+  }
+  function throwFragGrenade(sx0, sy0, tx, ty, team) {
+    grenades.push({ x: sx0, y: sy0, sx: sx0, sy: sy0, tx: tx, ty: ty, team: team, t: 0, dur: 0.85 });
+  }
+
+  function clearLOS(x1, y1, x2, y2, shooterOnWall, targetOnWall) {
+    for (var i = 0; i < smokes.length; i++) {
+      var sm = smokes[i];
+      if (pointToSegmentDistSq(sm.x, sm.y, x1, y1, x2, y2) < sm.r * sm.r) return false;
+    }
+    return traceWall(x1, y1, x2, y2, shooterOnWall, targetOnWall) === null;
+  }
+
+  function createLieutenant(team) {
+    var startX = 1800;
+    var startY = team === 0 ? 2150 : 280; // Allied LT starts on Yuhuatai Hills; Axis LT in Emergence Zone
+    return {
+      team: team,
+      name: team === 0 ? "NRA LT." : "IJA LT.",
+      x: startX, y: startY,
+      gx: startX, gy: startY,
+      ang: team === 0 ? -1.57 : 1.57,
+      hp: LIEUTENANT_MAX_HP,
+      maxHp: LIEUTENANT_MAX_HP,
+      alive: true,
+      respawnT: 0,
+      sup: 0,
+      retreating: false, // Brave Lieutenants NEVER retreat!
+      smkCd: 0,
+      skillCd: 9.0,
+      lastSkillTxt: "",
+      skillBannerT: 0,
+      cmdThink: 0.4,
+      cd: 0.4,
+      shotsInMag: 8, // Historical Pistol Magazine
+      recoil: 0,
+      flash: 0
+    };
+  }
+
+  function createSquad(id, numLabel, team, factionType, x, y, isHmg, ord, lane) {
+    var sq = {
+      id: id, name: String(numLabel), team: team, factionType: factionType,
+      isCopilot: factionType === "COPILOT", isIndependent: factionType === "INDEPENDENT",
+      isHmg: isHmg, order: ord, lane: lane,
+      morale: 100, supAvg: 0, ammo: 100, casualties: 0,
+      isPanicked: false, encircled: false, underAttackT: 0,
+      wx: x, wy: y, ang: team === 0 ? -1.57 : 1.57,
+      cluster: null, activeLeader: null, members: [],
+      think: rand(0.1, 0.8), smkCd: 0, chargeT: 0, trumpetPulse: 0
+    };
+    var roles = isHmg
+      ? ["SL","HMG","HMG","AP","MED","BUILD","R","R","R","R"]
+      : ["SL","MG","AP","AP","MED","BUILD","R","R","R","R"];
+    for (var i = 0; i < 10; i++) {
+      var off = team === 1 ? WEDGE_OFFSETS[i] : SKIRMISH_OFFSETS[i];
+      var role = roles[i];
+      var s = {
+        squad: sq, team: team, role: role, slot: i,
+        x: x + off.fy, y: y + (team === 0 ? -off.fx : off.fx),
+        ang: sq.ang, st: 0, hp: SOLDIER_MAX_HP, bleed: 16, sup: 0,
+        node: null, inCov: false, onWall: false, inTrench: false, climbingLadder: null,
+        tripod: false, statT: 0,
+        hasGrenade: true, hasSmoke: (i < 3), hasBuildKit: true,
+        cd: rand(0.1, 0.8), grenCd: 0, burst: 0,
+        // Historical weapon magazine / belt capacities
+        roundsLeft: role === "HMG" ? 30 : (role === "MG" ? 20 : 5),
+        tgt: null, recoil: 0, flash: 0,
+        boundPhase: rand(0, 6.28), wanderAngle: rand(-0.45, 0.45),
+        hatStyle: (team === 1 && (i % 3 === 1)) ? "CAP" : "HELMET" // IJA mix of Type 90 helmets & field caps with neck flaps
+      };
+      ensureClearPos(s, 7, "SOLDIER");
+      sq.members.push(s); soldiers.push(s);
+    }
+    sq.activeLeader = sq.members[0];
+    claimCover(sq, x, y);
+    squads.push(sq);
+    return sq;
+  }
+
+  function spawnArmoredTank(team, laneIdx) {
+    var lIdx = laneIdx !== undefined ? laneIdx : (tanks.length % 2);
+    var sx0 = lIdx === 0 ? 980 : 2620; // Align with West & East Bridges
+    var sy0 = team === 1 ? 180 : 6120;
+    var maxH = team === 1 ? AXIS_TANK_HP : ALLIED_TANK_HP;
+    tanks.push({
+      team: team, x: sx0, y: sy0,
+      bridgeIdx: lIdx,
+      gateIdx: lIdx === 0 ? 0 : 2,
+      ang: team === 1 ? 1.57 : -1.57, tAng: team === 1 ? 1.57 : -1.57,
+      hp: maxH, maxHp: maxH, alive: true,
+      cCd: 4.5, mCd: 0.12, mgBurst: 25, ramCd: 0
+    });
+  }
+
+  // Spawn 5 Allied Vanguard Teams per wave (Reduced from 6 to 5)
+  function spawnAlliedVanguardResponse() {
+    var vanSpawnsX = [790, 980, 1800, 2620, 2810];
+    for (var k = 0; k < 5; k++) {
+      if (squads.length < 155) {
+        var vx = vanSpawnsX[k] + rand(-30, 30);
+        var vy = 5880 + rand(-25, 25);
+        var vSq = createSquad(squads.length, nextSquadNum++, 0, "INDEPENDENT", vx, vy, (k % 2 === 1), "ADVANCE", (k - 2) * 0.5);
+        vSq.think = 0.05;
+        claimCover(vSq, vx, vy - 420);
+      }
+    }
+    ripples.push({ x: 1800, y: 5880, r: 22, a: 1.0 });
+  }
+
+  function triggerEndGame(isVictory, reasonText) {
+    if (gameEnded) return;
+    gameEnded = true;
+    var modal = document.getElementById("endModal");
+    var titleEl = document.getElementById("endTitle");
+    var descEl = document.getElementById("endDesc");
+    var statsEl = document.getElementById("endStatsBox");
+    modal.style.display = "flex";
+    if (isVictory) {
+      titleEl.style.color = "#58ff8a";
+      titleEl.textContent = "VICTORY: EVACUATION COMPLETE";
+    } else {
+      titleEl.style.color = "#ff473d";
+      titleEl.textContent = "DEFEAT: DEFENSES COLLAPSED";
+    }
+    descEl.textContent = reasonText;
+
+    var heldSec = Math.round(MISSION_DURATION - missionTimer);
+    var hMin = Math.floor(heldSec / 60), hSec = heldSec % 60;
+    statsEl.innerHTML =
+      "<b>TIME HELD:</b> " + hMin + "m " + (hSec < 10 ? "0" : "") + hSec + "s / 20m 00s<br>" +
+      "<b>CIVILIANS EVACUATED ACROSS YANGTZE:</b> " + civsSaved + "<br>" +
+      "<b>CIVILIAN CASUALTIES:</b> " + civsKilled + " / " + MAX_CIV_KIA_LIMIT + "<br>" +
+      "<b>TOTAL MILITARY CASUALTIES (BOTH SIDES):</b> " + totalMilKia;
+  }
+
+  function initBattle() {
+    squads = []; soldiers = []; tanks = []; lieutenants = []; grenades = []; smokes = []; ripples = [];
+    for (var i = 0; i < MAX_PROJ; i++) projectiles[i].active = false;
+    waveStepIndex = 0; waveTimer = 90.0; nextSquadNum = 1;
+    alliedArtilleryCd = 0; imperialMortarTimer = 12.0; breachAlarmTimer = 0;
+    missionTimer = MISSION_DURATION;
+    civsSaved = 0; civsKilled = 0; totalMilKia = 0; civSpawnTimer = 0;
+    gameEnded = false;
+    document.getElementById("endModal").style.display = "none";
+    buildMap();
+
+    lieutenants = [createLieutenant(0), createLieutenant(1)];
+
+    // Player Squads 1-8 deployed on Yuhuatai Hills & Qinhuai Bridgeheads
+    var playerCfg = [
+      [1050, 1450, true,  -1],
+      [1480, 1520, false, -1],
+      [2120, 1520, false,  1],
+      [2550, 1450, true,   1],
+      [1800, 2020, true,   0],
+      [980,  2865, true,  -1],
+      [2620, 2865, true,   1],
+      [1800, 3428, false,  0]
+    ];
+    playerCfg.forEach(function(c, idx) {
+      createSquad(idx, nextSquadNum++, 0, "PLAYER", c[0], c[1], c[2], "HOLD", c[3]);
+    });
+
+    // Allied Copilot Squads 9-16 manning Hills, Bridges & Zhonghua City Wall
+    var allyCfg = [
+      [680,  1520, false, -1],
+      [2920, 1520, false,  1],
+      [1350, 2060, true,  -1],
+      [2250, 2060, true,   1],
+      [790,  3428, true,  -1],
+      [1420, 3428, false,  0],
+      [2180, 3428, false,  0],
+      [2810, 3428, true,   1]
+    ];
+    allyCfg.forEach(function(c, idx) {
+      createSquad(idx + 8, nextSquadNum++, 0, "COPILOT", c[0], c[1], c[2], "HOLD", c[3]);
+    });
+
+    // 22 Initial IJA Squads (220 troops) emerging in the Northern Emergence Zone (Y: 160..580)
+    var axCfg = [
+      [380,  180, false, -1], [680,  180, true,  -1], [980,  180, true,  -1], [1280, 180, false, -1],
+      [1580, 180, true,   0], [1800, 180, true,   0], [2020, 180, false,  0], [2320, 180, true,   1],
+      [2620, 180, true,   1], [2920, 180, false,  1], [3220, 180, false,  1],
+      [480,  420, false, -1], [820,  420, true,  -1], [1120, 420, false, -1], [1460, 420, true,   0],
+      [1800, 420, false,  0], [2140, 420, true,   0], [2480, 420, false,  1], [2780, 420, true,   1],
+      [3120, 420, false,  1], [980,  620, true,  -1], [2620, 620, true,   1]
+    ];
+    axCfg.forEach(function(c) {
+      var sq = createSquad(squads.length, nextSquadNum++, 1, "AXIS", c[0], c[1], c[2], "ADVANCE", c[3]);
+      sq.chargeT = 9.0; // Initial Banzai momentum toward Yuhuatai!
+    });
+
+    spawnArmoredTank(1, 0);
+    spawnArmoredTank(1, 1);
+
+    cam.x = 1800; cam.y = 2020; cam.z = 0.44; clampCam();
+    selectSquad(4, false);
+  }
+
+  // Wave Reinforcements: 220 IJA Soldiers vs 160 NRA Soldiers + 5 Vanguard Squads
+  function executeWaveCycle() {
+    var team = WAVE_PATTERN[waveStepIndex];
+    var targetWaveSize = (team === 1) ? 220 : 160;
+    var spawnedMen = 0;
+    var safeLanesX = [420, 790, 980, 1420, 1800, 2180, 2620, 2810, 3180];
+    var baseSpawnY = team === 1 ? 160 : 6140;
+    var targetFlag = team === 0 ? getAlliedTargetFlag() : getAxisTargetFlag();
+
+    for (var i = 0; i < squads.length; i++) {
+      var sq = squads[i];
+      if (sq.team !== team) continue;
+      var laneX = safeLanesX[i % safeLanesX.length];
+      sq.ammo = 100;
+
+      for (var j = 0; j < sq.members.length; j++) {
+        var m = sq.members[j];
+        m.hasGrenade = true; m.hasSmoke = (j < 3); m.hasBuildKit = true;
+        if (m.st !== 0 && spawnedMen < targetWaveSize) {
+          m.st = 0; m.hp = SOLDIER_MAX_HP; m.bleed = 16; m.sup = 0; m.climbingLadder = null;
+          var off = team === 1 ? WEDGE_OFFSETS[j % 10] : SKIRMISH_OFFSETS[j % 10];
+          m.x = laneX + off.fy + rand(-14, 14);
+          m.y = baseSpawnY + off.fx + rand(-14, 14);
+          ensureClearPos(m, 8, "SOLDIER");
+          spawnedMen++;
+        } else if (m.st === 0) {
+          m.hp = SOLDIER_MAX_HP; m.sup = 0;
+        }
+      }
+      sq.morale = 100; sq.isPanicked = false;
+      if (team === 1) sq.chargeT = 10.0; // Wave Banzai charge!
+      if (sq.team === 1 || sq.isCopilot || sq.isIndependent || ltControlPlayer) {
+        if (sq.factionType !== "PLAYER" || ltControlPlayer || selSq === -1) sq.order = "ADVANCE";
+      }
+    }
+
+    while (spawnedMen + 10 <= targetWaveSize && squads.length < 155) {
+      var extraX = safeLanesX[squads.length % safeLanesX.length] + rand(-40, 40);
+      var fType = team === 0 ? "COPILOT" : "AXIS";
+      var newSq = createSquad(squads.length, nextSquadNum++, team, fType, extraX, baseSpawnY + rand(-25, 25), (squads.length % 3 === 0), "ADVANCE", (squads.length % 3) - 1);
+      if (team === 1) newSq.chargeT = 10.0;
+      claimCover(newSq, targetFlag.x + rand(-260, 260), targetFlag.y + rand(-120, 120));
+      spawnedMen += 10;
+    }
+
+    // Spawn 5 Vanguard Squads per wave (Reduced from 6 to 5)
+    var indSpawnsX = [560, 980, 1800, 2620, 3040];
+    for (var k = 0; k < 5; k++) {
+      if (squads.length < 155) {
+        var indX = indSpawnsX[k] + rand(-35, 35);
+        var indY = baseSpawnY + (team === 1 ? 65 : -65);
+        var indSq = createSquad(squads.length, nextSquadNum++, team, "INDEPENDENT", indX, indY, (k % 2 === 1), "ADVANCE", (k - 2) * 0.5);
+        if (team === 1) indSq.chargeT = 12.0;
+        claimCover(indSq, targetFlag.x + (k - 2) * 160, targetFlag.y);
+      }
+    }
+
+    callArtilleryBarrage(targetFlag.x, targetFlag.y, 6, team, true);
+
+    if (team === 0) {
+      spawnArmoredTank(0, 0);
+    } else {
+      spawnArmoredTank(1, 0);
+      spawnArmoredTank(1, 1);
+      spawnAlliedVanguardResponse();
+    }
+
+    ripples.push({ x: 1800, y: baseSpawnY, r: 24, a: 1.0 });
+    waveStepIndex = (waveStepIndex + 1) % WAVE_PATTERN.length;
+    waveTimer = 90.0;
+  }
+
+  function setSquadOrder(sq, ord) {
+    var l = sq.members.find(function(m) { return m.st === 0; });
+    if (!l) return;
+    sq.order = ord;
+    if (ord === "FALLBACK") {
+      var ry = sq.team === 0 ? Math.min(RIVER_Y - 60, l.y + 320) : Math.max(160, l.y - 320);
+      claimCover(sq, l.x + rand(-80, 80), ry);
+      var smoker = sq.members.find(function(m) { return m.st === 0 && m.hasSmoke; });
+      if (smoker) {
+        smoker.hasSmoke = false;
+        spawnSmoke(l.x + Math.cos(sq.ang) * 65, l.y + Math.sin(sq.ang) * 65);
+      }
+    } else if (ord === "HOLD") {
+      claimCover(sq, l.x, l.y);
+    } else if (ord === "ASSAULT_FLAG") {
+      var flg = sq.team === 0 ? getAlliedTargetFlag() : getAxisTargetFlag();
+      claimCover(sq, flg.x + rand(-120, 120), flg.y + rand(-60, 60));
+    }
+  }
+  /****************************************************************************
+   * 3. BRAVE LIEUTENANTS, BRIDGE CHOKEPOINT AI & HISTORICAL REALISM ENGINE
+   ****************************************************************************/
+  var STEER_ANGLES = [0, 0.38, -0.38, 0.78, -0.78, 1.20, -1.20, 1.65, -1.65, 2.2, -2.2];
+
+  function moveSoldierTactically(s, goalX, goalY, spd, dt) {
+    // 1. Funnel units across the 2 Qinhuai Bridges when crossing the river moat (Y: 2520..2800)
+    if (s.y < MOAT_Y1 + 15 && goalY > MOAT_Y1 + 5) {
+      var brN = getNearestBridge(s.x);
+      if (Math.abs(s.x - brN.cx) > brN.w * 0.40) {
+        goalX = brN.cx + (s.slot - 4.5) * 12;
+        goalY = MOAT_Y1 - 15;
+      } else {
+        var bar = bridgeBarriers[brN.id];
+        if (s.team === 1 && bar && bar.hp > 0) {
+          goalX = bar.cx + (s.slot - 4.5) * 14;
+          goalY = bar.y - 12;
+        }
+      }
+    } else if (s.y > MOAT_Y2 - 15 && goalY < MOAT_Y2 - 5) {
+      var brS = getNearestBridge(s.x);
+      if (Math.abs(s.x - brS.cx) > brS.w * 0.40) {
+        goalX = brS.cx + (s.slot - 4.5) * 12;
+        goalY = MOAT_Y2 + 15;
+      }
+    }
+
+    // 2. Funnel Axis units through City Gates or Siege Ladders at the Zhonghua City Wall (Y: 3380..3476)
+    if (s.team === 1 && !s.onWall && s.y > WALL_Y - 115 && s.y < WALL_Y + 60 && goalY > WALL_Y + 10) {
+      var openGate = null, minOpenD = Infinity;
+      for (var gI = 0; gI < gates.length; gI++) {
+        if (gates[gI].hp <= 0) {
+          var gd = Math.abs(s.x - gates[gI].cx);
+          if (gd < minOpenD) { minOpenD = gd; openGate = gates[gI]; }
+        }
+      }
+
+      if (openGate && minOpenD < 950) {
+        if (Math.abs(s.x - openGate.cx) > openGate.w * 0.40 && s.y < WALL_Y + 50) {
+          goalX = openGate.cx + rand(-35, 35);
+          goalY = WALL_Y - 65;
+        } else {
+          goalX = openGate.cx + (s.slot - 4.5) * 10;
+          goalY = WALL_Y + 150;
+        }
+      } else {
+        var nearGate = getNearestGate(s.x, s.y);
+        if (nearGate.hp > 0 && Math.abs(s.x - nearGate.cx) > nearGate.w * 0.52) {
+          var bestLad = null, minLD = 260;
+          for (var lI = 0; lI < ladders.length; lI++) {
+            var ld = Math.abs(s.x - ladders[lI].x);
+            if (ld < minLD) { minLD = ld; bestLad = ladders[lI]; }
+          }
+          if (bestLad) {
+            bestLad.active = true;
+            if (Math.abs(s.x - bestLad.x) > 10 && s.y < bestLad.topY + 6) {
+              goalX = bestLad.x; goalY = bestLad.topY;
+            } else {
+              s.climbingLadder = bestLad;
+              s.x += clamp(bestLad.x - s.x, -25 * dt, 25 * dt);
+              s.y += (spd * 0.40) * dt;
+              if (s.y >= bestLad.botY) {
+                s.climbingLadder = null;
+                s.onWall = false;
+              }
+              return;
+            }
+          }
+        }
+      }
+    }
+    s.climbingLadder = null;
+
+    var dx = goalX - s.x, dy = goalY - s.y;
+    var distG = Math.sqrt(dx * dx + dy * dy);
+    if (distG < 4) return;
+    var baseAng = Math.atan2(dy, dx);
+    s.boundPhase += dt * 3.2;
+
+    if (s.squad.isPanicked) {
+      baseAng += Math.sin(s.boundPhase * 2.5 + s.slot) * 0.85;
+    } else if (distG > 35) {
+      baseAng += Math.sin(s.boundPhase + s.slot) * 0.16 + s.wanderAngle * 0.20;
+    }
+
+    var chosenAng = baseAng;
+    var lookAhead = Math.min(32, distG);
+    for (var i = 0; i < STEER_ANGLES.length; i++) {
+      var testAng = baseAng + STEER_ANGLES[i];
+      var tx = s.x + Math.cos(testAng) * lookAhead;
+      var ty = s.y + Math.sin(testAng) * lookAhead;
+      if (!getOverlappingWall(tx, ty, 7, "SOLDIER", s)) { chosenAng = testAng; break; }
+    }
+    var sepX = 0, sepY = 0;
+    for (var j = 0; j < s.squad.members.length; j++) {
+      var m = s.squad.members[j];
+      if (m !== s && m.st === 0) {
+        var ox = s.x - m.x, oy = s.y - m.y, odSq = ox * ox + oy * oy;
+        if (odSq > 0.01 && odSq < 22 * 22) {
+          var inv = 1 / Math.sqrt(odSq);
+          sepX += ox * inv * 28; sepY += oy * inv * 28;
+        }
+      }
+    }
+    if (isInBarbedWire(s.x, s.y)) spd *= 0.42;
+
+    var vx = Math.cos(chosenAng) * spd + sepX;
+    var vy = Math.sin(chosenAng) * spd + sepY;
+    s.x += vx * dt; s.y += vy * dt;
+    ensureClearPos(s, 6, "SOLDIER");
+    s.onWall = isOnCityWall(s.x, s.y);
+    s.inTrench = isInUrbanTrench(s.x, s.y);
+  }
+
+  function updateEvacuationPort(dt) {
+    civSpawnTimer -= dt;
+    if (civSpawnTimer <= 0) {
+      civSpawnTimer = 5.5;
+      spawnCivilianGroup();
+    }
+    for (var bI = 0; bI < boats.length; bI++) {
+      var bt = boats[bI];
+      var pr = bt.pier;
+      if (bt.state === "ARRIVING") {
+        bt.y = Math.max(pr.dockY + 42, bt.y - 52 * dt);
+        if (bt.y <= pr.dockY + 44) { bt.state = "BOARDING"; bt.timer = 6.5; }
+      } else if (bt.state === "BOARDING") {
+        bt.timer -= dt;
+        if (bt.timer <= 0 || bt.onboard >= bt.capacity) bt.state = "DEPARTING";
+      } else if (bt.state === "DEPARTING") {
+        bt.y += 65 * dt;
+        if (bt.y >= H - 40) {
+          civsSaved += bt.onboard;
+          bt.onboard = 0;
+          bt.state = "ARRIVING";
+        }
+      }
+    }
+
+    for (var cI = civilians.length - 1; cI >= 0; cI--) {
+      var civ = civilians[cI];
+      if (!civ.alive) { civilians.splice(cI, 1); continue; }
+      var pr0 = piers[civ.pierIdx];
+      var bt0 = boats[civ.pierIdx];
+
+      var targetX = pr0.cx + ((cI % 5) - 2) * 14;
+      var targetY = (bt0.state === "BOARDING") ? (pr0.dockY - 8) : (pr0.y + 45 + (cI % 6) * 16);
+
+      var dx = targetX - civ.x, dy = targetY - civ.y;
+      var d = Math.sqrt(dx * dx + dy * dy);
+      if (d > 4) {
+        civ.x += (dx / d) * 44 * dt;
+        civ.y += (dy / d) * 44 * dt;
+      }
+
+      if (bt0.state === "BOARDING" && bt0.onboard < bt0.capacity && dist(civ.x, civ.y, pr0.cx, pr0.dockY) < 42) {
+        bt0.onboard++;
+        civilians.splice(cI, 1);
+      }
+    }
+  }
+
+  // BRAVE LIEUTENANT AI: Officers advance and hold ground right alongside their lead frontline squads, NEVER retreating!
+  function updateLieutenants(dt) {
+    for (var t = 0; t < 2; t++) {
+      var lt = lieutenants[t];
+      if (!lt) continue;
+
+      if (!lt.alive) {
+        lt.respawnT -= dt;
+        if (lt.respawnT <= 0) {
+          lt.alive = true;
+          lt.hp = LIEUTENANT_MAX_HP;
+          lt.sup = 0;
+          lt.retreating = false;
+          lt.x = 1800 + rand(-120, 120);
+          lt.y = t === 0 ? 5980 : 180;
+          ensureClearPos(lt, 8, "SOLDIER");
+          ripples.push({ x: lt.x, y: lt.y, r: 14, a: 1.0 });
+        }
+        continue;
+      }
+
+      if (lt.smkCd > 0) lt.smkCd -= dt;
+      if (lt.skillCd > 0) lt.skillCd -= dt;
+      if (lt.skillBannerT > 0) lt.skillBannerT -= dt;
+      if (lt.recoil > 0) lt.recoil = Math.max(0, lt.recoil - 16 * dt);
+      if (lt.flash > 0) lt.flash -= dt;
+      // Officers shrug off suppression rapidly and never retreat
+      lt.sup = clamp(lt.sup - 0.50 * dt, 0, 0.55);
+      lt.retreating = false;
+      lt.hp = Math.min(lt.maxHp, lt.hp + 4.5 * dt);
+
+      var minEnemyDSq = Infinity, nearestEnX = 1800, nearestEnY = t === 0 ? 600 : 5800;
+      for (var eI = 0; eI < soldiers.length; eI++) {
+        var es = soldiers[eI];
+        if (es.team !== t && es.st === 0) {
+          var ed = dSq(lt.x, lt.y, es.x, es.y);
+          if (ed < minEnemyDSq) { minEnemyDSq = ed; nearestEnX = es.x; nearestEnY = es.y; }
+        }
+      }
+      var minEnemyDist = Math.sqrt(minEnemyDSq);
+
+      // Officer Tactical Command Skill (Every 11-14s: Banzai Order / Rally Cry / Artillery Call)
+      if (lt.skillCd <= 0) {
+        lt.skillCd = rand(11.0, 14.0);
+        for (var rSq = 0; rSq < squads.length; rSq++) {
+          var fSq = squads[rSq];
+          if (fSq.team === t && fSq.activeLeader && dSq(lt.x, lt.y, fSq.activeLeader.x, fSq.activeLeader.y) < 750 * 750) {
+            fSq.morale = 100;
+            fSq.isPanicked = false;
+            if (t === 1) {
+              fSq.chargeT = 10.5;
+              fSq.trumpetPulse = 2.5;
+            }
+          }
+        }
+        if (minEnemyDist < 1050) {
+          callArtilleryBarrage(nearestEnX, nearestEnY, 4, t, true);
+          lt.lastSkillTxt = t === 0 ? "HOLD THE LINE! COUNTER-BATTERY!" : "TENNO HEIKA BANZAI! CHARGE!";
+          lt.skillBannerT = 3.5;
+        } else {
+          lt.lastSkillTxt = t === 0 ? "STEADY MEN! NO RETREAT!" : "FORWARD TO THE BRIDGES!";
+          lt.skillBannerT = 3.0;
+        }
+        shockwaves.push({ x: lt.x, y: lt.y, r: 8, maxR: 85, alpha: 0.9, spd: 120, color: t === 0 ? "#58ff8a" : "#ff473d" });
+      }
+
+      // Position right alongside the foremost engaged frontline squads (Never falling back!)
+      lt.cmdThink -= dt;
+      if (lt.cmdThink <= 0) {
+        lt.cmdThink = 0.45;
+        var bestFrontSq = null, bestFrontScore = -999999;
+
+        for (var sI = 0; sI < squads.length; sI++) {
+          var sq = squads[sI];
+          if (sq.team !== t || !sq.activeLeader) continue;
+          var al = sq.activeLeader;
+          var frontProgress = (t === 0) ? -al.y : al.y;
+          var sc = frontProgress * 0.65 + (sq.underAttackT > 0 ? 120 : 0);
+          if (sc > bestFrontScore) { bestFrontScore = sc; bestFrontSq = al; }
+        }
+
+        if (bestFrontSq) {
+          // Stand right beside the frontline squad leader (+25px lateral, +30px tactical cover offset)
+          var targetLtX = clamp(bestFrontSq.x + (t === 0 ? -28 : 28), 220, W - 220);
+          var targetLtY = clamp(bestFrontSq.y + (t === 0 ? 32 : -32), 180, RIVER_Y - 80);
+
+          // Route across nearest Qinhuai Bridge if crossing moat
+          if (lt.y < MOAT_Y1 + 15 && targetLtY > MOAT_Y1 + 5) {
+            var brL = getNearestBridge(lt.x);
+            if (Math.abs(lt.x - brL.cx) > brL.w * 0.38) {
+              targetLtX = brL.cx; targetLtY = MOAT_Y1 - 12;
+            }
+          }
+          lt.gx = targetLtX; lt.gy = targetLtY;
+        }
+      }
+
+      var dxL = lt.gx - lt.x, dyL = lt.gy - lt.y;
+      var dL = Math.sqrt(dxL * dxL + dyL * dyL);
+      if (dL > 8) {
+        var spdL = 68;
+        var baseA = Math.atan2(dyL, dxL);
+        var moveA = baseA;
+        for (var st = 0; st < STEER_ANGLES.length; st++) {
+          var testA = baseA + STEER_ANGLES[st];
+          var tx = lt.x + Math.cos(testA) * 28;
+          var ty = lt.y + Math.sin(testA) * 28;
+          if (!getOverlappingWall(tx, ty, 8, "SOLDIER", { team: t, onWall: isOnCityWall(lt.x, lt.y) })) {
+            moveA = testA; break;
+          }
+        }
+        lt.x += Math.cos(moveA) * spdL * dt;
+        lt.y += Math.sin(moveA) * spdL * dt;
+        ensureClearPos(lt, 7, "SOLDIER");
+      }
+
+      lt.ang = Math.atan2(nearestEnY - lt.y, nearestEnX - lt.x);
+
+      // Historical Mauser C96 / Nambu Type 14 Sidearm Timing (0.38s semi-auto fire, 2.2s magazine reload after 8 rounds)
+      lt.cd -= dt;
+      if (lt.cd <= 0 && minEnemyDist < 420 && clearLOS(lt.x, lt.y, nearestEnX, nearestEnY, isOnCityWall(lt.x, lt.y), false)) {
+        fireBullet(lt.x, lt.y, lt.ang + rand(-0.025, 0.025), 540, t, 46, 0.25, false, 0.85);
+        lt.recoil = 3.0; lt.flash = 0.06;
+        lt.shotsInMag--;
+        if (lt.shotsInMag <= 0) {
+          lt.shotsInMag = 8;
+          lt.cd = 2.2; // Historical 8-round sidearm reload
+        } else {
+          lt.cd = 0.38;
+        }
+      }
+    }
+  }
+
+  function computeTacticalWaypoint(sq, lead) {
+    var flg = sq.team === 0 ? getAlliedTargetFlag() : getAxisTargetFlag();
+
+    // 1. Axis Bridge Chokepoint Assault (Y: 2250..2850)
+    if (sq.team === 1 && lead.y > 2200 && lead.y < MOAT_Y2 + 40) {
+      var prefBridge = sq.lane < 0 ? bridges[0] : (sq.lane > 0 ? bridges[1] : getNearestBridge(lead.x));
+      // If one bridge barrier is already breached, funnel nearby forces through it
+      if (bridgeBarriers[0].hp <= 0 && Math.abs(lead.x - bridges[0].cx) < 1100) prefBridge = bridges[0];
+      else if (bridgeBarriers[1].hp <= 0 && Math.abs(lead.x - bridges[1].cx) < 1100) prefBridge = bridges[1];
+
+      var bar = bridgeBarriers[prefBridge.id];
+      if (Math.abs(lead.x - prefBridge.cx) > prefBridge.w * 0.42 && lead.y < MOAT_Y1 + 20) {
+        claimCover(sq, prefBridge.cx + rand(-50, 50), MOAT_Y1 - 25);
+        return;
+      } else if (bar.hp > 0) {
+        claimCover(sq, bar.cx + rand(-65, 65), bar.y - 18);
+        return;
+      } else {
+        claimCover(sq, prefBridge.cx + rand(-55, 55), MOAT_Y2 + 95);
+        return;
+      }
+    }
+
+    // 2. Axis City Gate Breach Funneling (Y: 2950..3500)
+    if (sq.team === 1 && lead.y >= MOAT_Y2 + 20 && lead.y < WALL_Y + 60) {
+      var breachedGate = null, minBreachDist = Infinity;
+      for (var bG = 0; bG < gates.length; bG++) {
+        if (gates[bG].hp <= 0) {
+          var dBG = Math.abs(lead.x - gates[bG].cx);
+          if (dBG < minBreachDist) { minBreachDist = dBG; breachedGate = gates[bG]; }
+        }
+      }
+      if (breachedGate && minBreachDist < 1150) {
+        if (lead.y < WALL_Y - 120 && Math.abs(lead.x - breachedGate.cx) > 150) {
+          claimCover(sq, breachedGate.cx + rand(-55, 55), Math.min(WALL_Y - 80, lead.y + 300));
+          return;
+        } else {
+          claimCover(sq, breachedGate.cx + rand(-45, 45), lead.y < WALL_Y ? WALL_Y + 130 : WALL_Y + 320);
+          return;
+        }
+      }
+    }
+
+    // 3. Mutual Support for distressed friendly squads
+    var distressedAlly = null, bestDistressScore = 0;
+    var maxSupportRange = sq.isIndependent ? 3200 : 950;
+    for (var i = 0; i < squads.length; i++) {
+      var other = squads[i];
+      if (other === sq || other.team !== sq.team) continue;
+      var ol = other.activeLeader;
+      if (!ol) continue;
+      var dAlly = dist(lead.x, lead.y, ol.x, ol.y);
+      if (dAlly > 90 && dAlly < maxSupportRange && (other.supAvg > 0.30 || other.underAttackT > 0 || other.encircled)) {
+        var score = (other.supAvg * 140 + (other.underAttackT > 0 ? 75 : 0) + (other.encircled ? 90 : 0)) - dAlly * 0.04;
+        if (score > bestDistressScore) { bestDistressScore = score; distressedAlly = ol; }
+      }
+    }
+
+    var goalX = flg.x, goalY = flg.y;
+    var isSupporting = false;
+    var targetFlagObj = flg;
+
+    if (distressedAlly && (sq.isIndependent || Math.random() < 0.50)) {
+      var flankAngle = sq.ang + (sq.id % 2 === 0 ? 0.9 : -0.9);
+      goalX = distressedAlly.x + Math.cos(flankAngle) * 140;
+      goalY = distressedAlly.y + Math.sin(flankAngle) * 140;
+      isSupporting = true;
+    } else {
+      var bestFlag = flg, minFlagScore = 999999;
+      for (var f = 0; f < flags.length; f++) {
+        var candF = flags[f];
+        var needsAction = (sq.team === 0 && (candF.own !== 0 || candF.state === "CONTESTED")) ||
+                          (sq.team === 1 && (candF.own !== 1 || candF.state === "CONTESTED"));
+        if (needsAction) {
+          var df = dist(lead.x, lead.y, candF.x, candF.y);
+          var laneBias = 0;
+          if ((candF.id === 1 || candF.id === 4 || candF.id === 7) && (sq.lane < 0 || lead.x < 1400)) laneBias = -550;
+          if ((candF.id === 2 || candF.id === 5 || candF.id === 8) && (sq.lane > 0 || lead.x > 2200)) laneBias = -550;
+          var fScore = df + laneBias + (sq.team === 1 ? candF.y * 0.14 : -candF.y * 0.14);
+          if (fScore < minFlagScore) { minFlagScore = fScore; bestFlag = candF; }
+        }
+      }
+      targetFlagObj = bestFlag;
+      goalX = bestFlag.x + (sq.lane * 120);
+      goalY = bestFlag.y;
+    }
+
+    if (!isSupporting && dist(lead.x, lead.y, targetFlagObj.x, targetFlagObj.y) < 360) {
+      claimCover(sq, targetFlagObj.x + rand(-55, 55), targetFlagObj.y + rand(-55, 55));
+      return;
+    }
+
+    // Route across Qinhuai Bridges if goal is across the moat
+    if (lead.y < MOAT_Y1 && goalY > MOAT_Y2) {
+      var brToUse = getNearestBridge(lead.x);
+      goalX = brToUse.cx + rand(-45, 45);
+      goalY = bridgeBarriers[brToUse.id].hp > 0 && sq.team === 1 ? (MOAT_Y2 - 45) : (MOAT_Y2 + 80);
+    } else if (lead.y > MOAT_Y2 && goalY < MOAT_Y1) {
+      var brNorth = getNearestBridge(lead.x);
+      goalX = brNorth.cx + rand(-45, 45);
+      goalY = MOAT_Y1 - 65;
+    }
+
+    // Route across City Gates if goal is across the Zhonghua City Wall
+    if (sq.team === 0 && lead.y > WALL_Y + 40 && goalY < WALL_Y - 40) {
+      var allyGate = getNearestGate(lead.x, lead.y);
+      goalX = allyGate.cx + rand(-45, 45);
+      goalY = lead.y > WALL_Y + 140 ? WALL_Y + 110 : WALL_Y - 120;
+    } else if (sq.team === 1 && lead.y < WALL_Y - 20 && goalY > WALL_Y + 20) {
+      var prefGateIdx = sq.lane < 0 ? 0 : (sq.lane > 0 ? 2 : 1);
+      var tgtGate = gates[prefGateIdx];
+      goalX = tgtGate.cx + rand(-45, 45);
+      goalY = tgtGate.hp > 0 ? WALL_Y - 120 : WALL_Y + 140;
+    }
+
+    var toGoalX = goalX - lead.x, toGoalY = goalY - lead.y;
+    var distToGoal = Math.sqrt(toGoalX * toGoalX + toGoalY * toGoalY);
+    var dirX = distToGoal > 1 ? toGoalX / distToGoal : 0;
+    var dirY = distToGoal > 1 ? toGoalY / distToGoal : (sq.team === 1 ? 1 : -1);
+
+    var stepDist = Math.min(360, Math.max(170, distToGoal * 0.78));
+    var idealX = lead.x + dirX * stepDist;
+    var idealY = lead.y + dirY * stepDist;
+
+    var bestCluster = null, bestCScore = -999999;
+    for (var cI = 0; cI < clusters.length; cI++) {
+      var cl = clusters[cI];
+      if (cl.isBattlement && sq.team === 1) continue;
+      if (idealY > WALL_Y + 25 && cl.y < WALL_Y - 25) continue;
+      if (idealY < WALL_Y - 25 && cl.y > WALL_Y + 25) continue;
+      if (idealY > MOAT_Y2 && cl.y < MOAT_Y1) continue;
+      if (idealY < MOAT_Y1 && cl.y > MOAT_Y2) continue;
+
+      var dFromLead = dist(lead.x, lead.y, cl.x, cl.y);
+      if (dFromLead > 500) continue;
+
+      var dFromIdeal = dist(idealX, idealY, cl.x, cl.y);
+      var dFromGoal = dist(goalX, goalY, cl.x, cl.y);
+      var progressGain = distToGoal - dFromGoal;
+      if (progressGain < 25) continue;
+
+      var danger = getDanger(cl.x, cl.y, sq.team);
+      var defiladeBonus = hasWallShadowCover(cl.x, cl.y, sq.team) ? 45 : 0;
+      var score = progressGain * 1.65 - dFromIdeal * 0.55 + cl.bonus * 75 + defiladeBonus - danger * (isSupporting ? 0.35 : 0.95) + rand(-15, 15);
+      if (score > bestCScore) { bestCScore = score; bestCluster = cl; }
+    }
+
+    if (bestCluster) claimCover(sq, bestCluster.x, bestCluster.y);
+    else claimCover(sq, idealX + rand(-30, 30), idealY + rand(-30, 30));
+  }
+
+  function triggerWallOrGateAction(sq) {
+    if (!sq) return;
+    var lead = sq.activeLeader || sq.members.find(function(m) { return m.st === 0; });
+    if (!lead) return;
+
+    var didAction = false;
+    // Repair Bridge Sandbag Barriers if nearby
+    for (var bI = 0; bI < bridgeBarriers.length; bI++) {
+      var bb = bridgeBarriers[bI];
+      if (dist(lead.x, lead.y, bb.cx, bb.cy) < 280 && bb.hp > 0 && bb.hp < bb.maxHp) {
+        bb.hp = Math.min(bb.maxHp, bb.hp + 550);
+        spawnRicochet(bb.cx, bb.cy, true);
+        didAction = true;
+      }
+    }
+    // Drop burning pitch on Siege Ladders
+    for (var lI = 0; lI < ladders.length; lI++) {
+      var lad = ladders[lI];
+      if (dist(lead.x, lead.y, lad.x, (lad.topY + lad.botY) * 0.5) < 280) {
+        lad.pitchT = 6.0; lad.active = false;
+        spawnExplosion(lad.x, lad.topY + 12, 48, false, true);
+        for (var sI = 0; sI < soldiers.length; sI++) {
+          var es = soldiers[sI];
+          if (es.team === 1 && es.st === 0 && dist(es.x, es.y, lad.x, lad.topY + 15) < 62) {
+            es.hp -= 120; es.sup = 1.0;
+            if (es.hp <= 0) { es.st = 2; es.squad.casualties++; totalMilKia++; addScar(es.x, es.y, 7, "blood"); }
+          }
+        }
+        didAction = true;
+      }
+    }
+    // Repair City Gates
+    for (var gI = 0; gI < gates.length; gI++) {
+      var g = gates[gI];
+      if (dist(lead.x, lead.y, g.cx, g.cy) < 290 && g.hp > 0 && g.hp < g.maxHp) {
+        g.hp = Math.min(g.maxHp, g.hp + 500);
+        spawnRicochet(g.cx, g.cy, false);
+        didAction = true;
+      }
+    }
+    if (!didAction) {
+      throwFragGrenade(lead.x, lead.y, lead.x + Math.cos(sq.ang) * 110, lead.y + Math.sin(sq.ang) * 110, sq.team);
+    }
+  }
+
+  function updateSim(dt) {
+    if (!gameStarted || gameEnded) return 0;
+
+    updateGrid(dt);
+    if (cam.shake > 0) {
+      cam.shake = Math.max(0, cam.shake - 35 * dt);
+      shakeOffX = rand(-cam.shake, cam.shake);
+      shakeOffY = rand(-cam.shake, cam.shake);
+    } else {
+      shakeOffX = 0; shakeOffY = 0;
+    }
+
+    missionTimer = Math.max(0, missionTimer - dt);
+    if (missionTimer <= 0) {
+      triggerEndGame(true, "Chinese defenses held Nanking for 20 minutes while civilian ferries completed the crossing of the Yangtze River.");
+      return 0;
+    }
+
+    updateEvacuationPort(dt);
+
+    if (alliedArtilleryCd > 0) alliedArtilleryCd = Math.max(0, alliedArtilleryCd - dt);
+    if (breachAlarmTimer > 0) breachAlarmTimer = Math.max(0, breachAlarmTimer - dt);
+
+    imperialMortarTimer -= dt;
+    if (imperialMortarTimer <= 0) {
+      imperialMortarTimer = rand(18.0, 26.0);
+      var anyBridgeIntact = bridgeBarriers.some(function(b) { return b.hp > 0; });
+      if (anyBridgeIntact) {
+        var tgtBr = bridgeBarriers[Math.floor(rand(0, bridgeBarriers.length))];
+        callArtilleryBarrage(tgtBr.cx + rand(-140, 140), tgtBr.cy + rand(-40, 120), 3, 1, true);
+      } else {
+        var targetGate = gates[Math.floor(rand(0, gates.length))];
+        callArtilleryBarrage(targetGate.cx + rand(-180, 180), targetGate.cy + rand(40, 220), 3, 1, true);
+      }
+    }
+
+    for (var lIdx = 0; lIdx < ladders.length; lIdx++) {
+      if (ladders[lIdx].pitchT > 0) ladders[lIdx].pitchT -= dt;
+    }
+
+    waveTimer -= dt;
+    if (waveTimer <= 0) executeWaveCycle();
+
+    updateLieutenants(dt);
+
+    // Artillery Shells
+    for (var aI = artilleryShells.length - 1; aI >= 0; aI--) {
+      var shl = artilleryShells[aI];
+      if (shl.delay > 0) { shl.delay -= dt; continue; }
+      shl.flight -= dt;
+      if (shl.flight <= 0) {
+        spawnExplosion(shl.tx, shl.ty, 74, true, false);
+        for (var bI0 = 0; bI0 < bridgeBarriers.length; bI0++) {
+          var bb0 = bridgeBarriers[bI0];
+          if (bb0.hp > 0 && shl.tx + 75 > bb0.x && shl.tx - 75 < bb0.x + bb0.w && shl.ty + 75 > bb0.y && shl.ty - 75 < bb0.y + bb0.h) {
+            bb0.hp = Math.max(0, bb0.hp - 420);
+            if (bb0.hp < bb0.maxHp * 0.25) breachAlarmTimer = 4.0;
+          }
+        }
+        for (var gI0 = 0; gI0 < gates.length; gI0++) {
+          var gt0 = gates[gI0];
+          if (gt0.hp > 0 && shl.tx + 75 > gt0.x && shl.tx - 75 < gt0.x + gt0.w && shl.ty + 75 > gt0.y && shl.ty - 75 < gt0.y + gt0.h) {
+            gt0.hp = Math.max(0, gt0.hp - 400);
+            if (gt0.hp < gt0.maxHp * 0.25) breachAlarmTimer = 4.0;
+          }
+        }
+        for (var wI = 0; wI < walls.length; wI++) {
+          var wl = walls[wI];
+          if (wl.hp > 0 && shl.tx + 65 > wl.x && shl.tx - 65 < wl.x + wl.w && shl.ty + 65 > wl.y && shl.ty - 65 < wl.y + wl.h) {
+            wl.hp -= 55;
+            if (wl.hp <= 0) addScar(wl.x + wl.w * 0.5, wl.y + wl.h * 0.5, 42, "rubble");
+          }
+        }
+        for (var asI = 0; asI < soldiers.length; asI++) {
+          var asol = soldiers[asI];
+          if (asol.st === 0) {
+            var dBlast = dSq(shl.tx, shl.ty, asol.x, asol.y);
+            if (dBlast < 82 * 82) {
+              asol.sup = 1.0;
+              asol.squad.morale = clamp(asol.squad.morale - 12, 0, 100);
+              if (dBlast < 52 * 52) {
+                asol.hp -= (asol.onWall || asol.inTrench) ? 42 : 95;
+                if (asol.hp <= 0) {
+                  asol.st = Math.random() < 0.5 ? 1 : 2;
+                  if (asol.st === 2) { asol.squad.casualties++; totalMilKia++; }
+                  addScar(asol.x, asol.y, 7, "blood");
+                }
+              }
+            }
+          }
+        }
+        for (var ltB = 0; ltB < 2; ltB++) {
+          var ltUnit = lieutenants[ltB];
+          if (ltUnit && ltUnit.alive && dSq(shl.tx, shl.ty, ltUnit.x, ltUnit.y) < 60 * 60) {
+            ltUnit.hp -= 65;
+            if (ltUnit.hp <= 0) { ltUnit.alive = false; ltUnit.respawnT = 55.0; spawnExplosion(ltUnit.x, ltUnit.y, 45, false, false); }
+          }
+        }
+        artilleryShells.splice(aI, 1);
+      }
+    }
+
+    // Update Squads & Trigger Aggressive Banzai Charges on Hills & Bridges
+    for (var i = 0; i < squads.length; i++) {
+      var sq = squads[i];
+      if (sq.smkCd > 0) sq.smkCd -= dt;
+      if (sq.chargeT > 0) sq.chargeT -= dt;
+      if (sq.trumpetPulse > 0) sq.trumpetPulse -= dt;
+      if (sq.underAttackT > 0) sq.underAttackT -= dt;
+
+      var lead = null, supSum = 0, alv = 0;
+      for (var mIdx = 0; mIdx < sq.members.length; mIdx++) {
+        var m = sq.members[mIdx];
+        if (m.st === 0) {
+          if (!lead) lead = m;
+          supSum += m.sup; alv++;
+        }
+      }
+      sq.activeLeader = lead;
+      if (!lead) continue;
+      sq.supAvg = alv > 0 ? supSum / alv : 0;
+      sq.hasLtAura = isUnderLieutenantAura(lead.x, lead.y, sq.team);
+
+      // Aggressive IJA Banzai Doctrine when storming Yuhuatai Hills (Y < 2450) or Qinhuai Bridges (Y: 2350..3000)
+      if (sq.team === 1 && sq.chargeT <= 0 && (lead.y < 3050 || sq.hasLtAura) && Math.random() < 0.025) {
+        sq.chargeT = 9.5;
+        sq.morale = 100;
+        sq.isPanicked = false;
+        sq.trumpetPulse = 2.0;
+        shockwaves.push({ x: lead.x, y: lead.y, r: 6, maxR: 58, alpha: 0.85, spd: 95, color: "#ff473d" });
+      }
+
+      var ltMoraleBoost = sq.hasLtAura ? 18.0 : 0;
+      var banzaiBoost = (sq.team === 1 && sq.chargeT > 0) ? 20.0 : 0;
+      var moraleDelta = (sq.supAvg < 0.35 ? 4.5 : (sq.supAvg > 0.68 ? -6.5 : 0)) + ltMoraleBoost + banzaiBoost;
+      sq.morale = clamp(sq.morale + moraleDelta * dt, 0, 100);
+      sq.isPanicked = !sq.hasLtAura && !(sq.team === 1 && sq.chargeT > 0) && (sq.morale < 25);
+
+      if (sq.order === "HOLD" || sq.ammo < 15) sq.ammo = clamp(sq.ammo + 2.5 * dt, 0, 100);
+
+      var isAIControlled = (sq.team === 1) || sq.isIndependent || (sq.isCopilot && copilotOn) || (sq.factionType === "PLAYER" && ltControlPlayer);
+
+      // Axis forces on Banzai charge never fall back
+      if (sq.isPanicked && sq.order !== "FALLBACK" && sq.team === 0) setSquadOrder(sq, "FALLBACK");
+      else if (!sq.isPanicked && sq.morale > 58 && sq.order === "FALLBACK" && isAIControlled) sq.order = "ADVANCE";
+
+      sq.think -= dt;
+      if (sq.think > 0) continue;
+      sq.think = sq.isPanicked ? rand(1.4, 2.0) : rand(0.75, 1.15);
+
+      var tx = 1800, ty = sq.team === 0 ? 650 : 6260, minDSq = Infinity;
+      for (var j = 0; j < squads.length; j++) {
+        var oSq = squads[j];
+        if (oSq.team !== sq.team && oSq.activeLeader) {
+          var ol = oSq.activeLeader;
+          var d = dSq(lead.x, lead.y, ol.x, ol.y);
+          if (d < minDSq) { minDSq = d; tx = ol.x; ty = ol.y; }
+        }
+      }
+      sq.ang = Math.atan2(ty - lead.y, tx - lead.x);
+
+      if (isAIControlled) {
+        if (sq.order === "FALLBACK") continue;
+        if (sq.supAvg > 0.52 && sq.smkCd <= 0) {
+          var smkMember = sq.members.find(function(m) { return m.st === 0 && m.hasSmoke; });
+          if (smkMember) {
+            smkMember.hasSmoke = false;
+            sq.smkCd = 11.0;
+            spawnSmoke(lead.x + Math.cos(sq.ang) * 55, lead.y + Math.sin(sq.ang) * 55);
+          }
+        }
+        sq.order = "ADVANCE";
+        computeTacticalWaypoint(sq, lead);
+      }
+    }
+
+    // Update Tanks (Historical 57mm/37mm Cannon Reloads: 5.5s-6.8s, Coaxial MG Belt bursts)
+    for (var tI = 0; tI < tanks.length; tI++) {
+      var tk = tanks[tI];
+      if (!tk.alive) continue;
+      if (tk.ramCd > 0) tk.ramCd -= dt;
+
+      var tgtX = 1800, tgtY = tk.team === 0 ? 650 : 6260;
+      var assignedBr = bridges[tk.bridgeIdx !== undefined ? tk.bridgeIdx : 0];
+      var assignedBar = bridgeBarriers[assignedBr.id];
+      var assignedGate = gates[tk.gateIdx !== undefined ? tk.gateIdx : 1];
+
+      if (tk.team === 1) {
+        if (tk.y < MOAT_Y2 + 20) {
+          tgtX = assignedBr.cx;
+          tgtY = assignedBar.hp > 0 ? (assignedBar.y - 22) : (MOAT_Y2 + 90);
+        } else if (assignedGate.hp > 0 && tk.y < assignedGate.y + 10) {
+          tgtX = assignedGate.cx;
+          tgtY = assignedGate.y - 18;
+        } else if (tk.y < WALL_Y + 220) {
+          tgtX = assignedGate.cx;
+          tgtY = WALL_Y + 260;
+        } else {
+          var axFlg = getAxisTargetFlag();
+          tgtX = axFlg.x; tgtY = axFlg.y;
+        }
+      } else {
+        var alFlg = getAlliedTargetFlag();
+        tgtX = alFlg.x; tgtY = alFlg.y;
+      }
+
+      var dxT = tgtX - tk.x, dyT = tgtY - tk.y;
+      var distT = Math.sqrt(dxT * dxT + dyT * dyT);
+      var baseMoveA = Math.atan2(dyT, dxT);
+
+      if (distT > 16) {
+        var tankSteer = [0, 0.30, -0.30, 0.65, -0.65, 1.05, -1.05, 1.45, -1.45];
+        for (var stI = 0; stI < tankSteer.length; stI++) {
+          var testA = baseMoveA + tankSteer[stI];
+          var testX = tk.x + Math.cos(testA) * TANK_SPEED * dt;
+          var testY = Math.min(RIVER_Y - 25, tk.y + Math.sin(testA) * TANK_SPEED * dt);
+          if (testY > MOAT_Y1 - 16 && testY < MOAT_Y2 + 16 && !isOnBridge(testX, testY)) continue;
+          var blk = getOverlappingWall(testX, testY, 16, "TANK", tk);
+          if (!blk) {
+            tk.x = testX; tk.y = testY; tk.ang = testA;
+            break;
+          } else if (stI === 0 && tk.team === 1 && (blk.isGate || blk.isBridgeBarrier) && blk.hp > 0) {
+            if (tk.ramCd <= 0) {
+              tk.ramCd = 2.4;
+              blk.hp = Math.max(0, blk.hp - 480);
+              spawnExplosion(tk.x, blk.y, 44, true, false);
+              if (blk.hp < blk.maxHp * 0.25) breachAlarmTimer = 4.5;
+            }
+            break;
+          }
+        }
+      }
+
+      // Tank Target Selection: Bridge Barrier -> City Gate -> Infantry/LT
+      if (tk.team === 1 && assignedBar && assignedBar.hp > 0 && dist(tk.x, tk.y, assignedBar.cx, assignedBar.cy) < 480) {
+        tk.tAng = Math.atan2(assignedBar.cy - tk.y, assignedBar.cx - tk.x);
+        tk.cCd -= dt;
+        if (tk.cCd <= 0) {
+          fireBullet(tk.x, tk.y, tk.tAng + rand(-0.015, 0.015), 520, tk.team, 420, 0.90, true, 1.25);
+          spawnMuzzleSparks(tk.x + Math.cos(tk.tAng) * 24, tk.y + Math.sin(tk.tAng) * 24, tk.tAng, true);
+          tk.cCd = rand(5.2, 6.4); // Historical 57mm main gun shell loading cycle
+        }
+      } else if (tk.team === 1 && assignedGate && assignedGate.hp > 0 && dist(tk.x, tk.y, assignedGate.cx, assignedGate.cy) < 480) {
+        tk.tAng = Math.atan2(assignedGate.cy - tk.y, assignedGate.cx - tk.x);
+        tk.cCd -= dt;
+        if (tk.cCd <= 0) {
+          fireBullet(tk.x, tk.y, tk.tAng + rand(-0.015, 0.015), 520, tk.team, 420, 0.90, true, 1.25);
+          spawnMuzzleSparks(tk.x + Math.cos(tk.tAng) * 24, tk.y + Math.sin(tk.tAng) * 24, tk.tAng, true);
+          tk.cCd = rand(5.2, 6.4);
+        }
+      } else {
+        var tTgt = null, bestTD = 540 * 540;
+        for (var sI0 = 0; sI0 < soldiers.length; sI0++) {
+          var es = soldiers[sI0];
+          if (es.team !== tk.team && es.st === 0) {
+            var td = dSq(tk.x, tk.y, es.x, es.y);
+            if (td < bestTD && clearLOS(tk.x, tk.y, es.x, es.y, false, es.onWall)) { bestTD = td; tTgt = es; }
+          }
+        }
+        if (tTgt) {
+          var aimT = Math.atan2(tTgt.y - tk.y, tTgt.x - tk.x);
+          tk.tAng += clamp(normAng(aimT - tk.tAng), -1.8 * dt, 1.8 * dt);
+          tk.mCd -= dt;
+          if (tk.mCd <= 0) {
+            fireBullet(tk.x, tk.y, tk.tAng + rand(-0.04, 0.04), 660, tk.team, 26, 0.28, false, 0.95);
+            tk.mgBurst--;
+            if (tk.mgBurst <= 0) {
+              tk.mgBurst = 25;
+              tk.mCd = 3.8; // Historical Tank MG belt/magazine swap
+            } else {
+              tk.mCd = 0.11;
+            }
+          }
+          tk.cCd -= dt;
+          if (tk.cCd <= 0) {
+            fireBullet(tk.x, tk.y, tk.tAng + rand(-0.02, 0.02), 520, tk.team, 130, 0.92, true, 1.25);
+            spawnMuzzleSparks(tk.x + Math.cos(tk.tAng) * 24, tk.y + Math.sin(tk.tAng) * 24, tk.tAng, true);
+            tk.cCd = rand(5.4, 6.8); // Historical Tank Cannon Reload
+          }
+        }
+      }
+    }
+
+    // Update All Infantry Soldiers (Historical Bolt-Action & MG Reloads + Aggressive Banzai Speed)
+    for (var sIdx = 0; sIdx < soldiers.length; sIdx++) {
+      var s = soldiers[sIdx];
+      if (s.st === 2) continue;
+      if (s.recoil > 0) s.recoil = Math.max(0, s.recoil - 16 * dt);
+      if (s.flash > 0) s.flash -= dt;
+
+      if (s.st === 1) {
+        s.bleed -= dt;
+        if (s.bleed <= 0) {
+          s.st = 2; s.squad.casualties++; totalMilKia++;
+          if (s.node) { s.node.occ = null; s.node = null; }
+          s.squad.morale = clamp(s.squad.morale - 6, 0, 100);
+        }
+        continue;
+      }
+
+      s.onWall = isOnCityWall(s.x, s.y);
+      s.inTrench = isInUrbanTrench(s.x, s.y);
+      var ltSupBonus = s.squad.hasLtAura ? 0.18 : 0;
+      var banzaiSupBonus = (s.team === 1 && s.squad.chargeT > 0) ? 0.25 : 0;
+      s.sup = clamp(s.sup - ((s.inCov || s.onWall || s.inTrench ? 0.28 : 0.14) + ltSupBonus + banzaiSupBonus) * dt, 0, 1);
+
+      // Bayonet Melee Combat
+      var meleeRangeSq = s.squad.chargeT > 0 ? (20 * 20) : (12 * 12);
+      for (var nSol = 0; nSol < soldiers.length; nSol++) {
+        var opp = soldiers[nSol];
+        if (opp.team !== s.team && opp.st === 0 && dSq(s.x, s.y, opp.x, opp.y) < meleeRangeSq) {
+          var winChance = (s.squad.chargeT > 0 ? 0.74 : 0.50) + (s === s.squad.activeLeader ? 0.1 : 0) + (s.squad.hasLtAura ? 0.12 : 0);
+          if (Math.random() < winChance) {
+            opp.st = 2; opp.squad.casualties++; totalMilKia++;
+            opp.squad.morale = clamp(opp.squad.morale - 10, 0, 100);
+            opp.squad.underAttackT = 6.0;
+            addScar(opp.x, opp.y, 6, "blood");
+            spawnRicochet(opp.x, opp.y, false);
+          }
+          break;
+        }
+      }
+
+      if (s.role === "MED" && !s.squad.isPanicked) {
+        var pat = null, minPD = Infinity;
+        for (var pI = 0; pI < s.squad.members.length; pI++) {
+          var m2 = s.squad.members[pI];
+          if (m2.st === 1) {
+            var pd = dSq(s.x, s.y, m2.x, m2.y);
+            if (pd < minPD) { minPD = pd; pat = m2; }
+          }
+        }
+        if (pat) {
+          if (minPD > 15 * 15) moveSoldierTactically(s, pat.x, pat.y, 76, dt);
+          else {
+            pat.st = 0; pat.hp = SOLDIER_MAX_HP; pat.bleed = 16; pat.sup = 0.2;
+            s.squad.morale = clamp(s.squad.morale + 6, 0, 100);
+          }
+          continue;
+        }
+      }
+
+      var lead = s.squad.activeLeader || s;
+      var destX = s.squad.wx, destY = s.squad.wy;
+      if (s.squad.isPanicked) {
+        destX = lead.x + Math.cos(s.slot * 1.7 + s.boundPhase) * 65;
+        destY = lead.y + Math.sin(s.slot * 1.7 + s.boundPhase) * 65;
+      } else if (s.node && s.squad.order !== "ADVANCE") {
+        destX = s.node.x; destY = s.node.y;
+      } else if (s !== lead) {
+        var formArr = (s.team === 1 && s.squad.order === "ADVANCE") ? WEDGE_OFFSETS : SKIRMISH_OFFSETS;
+        var off = formArr[s.slot % 10];
+        var cosA = Math.cos(s.squad.ang), sinA = Math.sin(s.squad.ang);
+        var anchorX = dist(lead.x, lead.y, s.squad.wx, s.squad.wy) > 120 ? (lead.x * 0.6 + s.squad.wx * 0.4) : s.squad.wx;
+        var anchorY = dist(lead.x, lead.y, s.squad.wx, s.squad.wy) > 120 ? (lead.y * 0.6 + s.squad.wy * 0.4) : s.squad.wy;
+        destX = anchorX + (off.fx * cosA - off.fy * sinA);
+        destY = anchorY + (off.fx * sinA + off.fy * cosA);
+      } else if (s.node) {
+        destX = s.node.x; destY = s.node.y;
+      }
+
+      var distG = dist(s.x, s.y, destX, destY);
+      s.inCov = Boolean((s.node && distG < 16 && !s.squad.isPanicked) || s.onWall || s.inTrench);
+
+      var isBanzai = (s.squad.chargeT > 0);
+      var pinned = s.sup > 0.80 && s.squad.order !== "FALLBACK" && !isBanzai;
+      var spd = s.role === "HMG" ? 38 : (s.role === "MG" ? 54 : 68);
+      if (isBanzai) spd *= 1.38; // Boosted Banzai charge speed across hills & bridges
+      else if (s.sup > 0.35) spd *= (1 - s.sup * 0.38);
+
+      if (distG > 6 && !(pinned && s.inCov)) {
+        s.statT = 0; s.tripod = false;
+        moveSoldierTactically(s, destX, destY, spd, dt);
+      } else {
+        s.statT += dt;
+        if (s.role === "HMG" && s.statT >= 1.1) s.tripod = true;
+      }
+
+      if (s.climbingLadder) continue;
+      if ((s.sup > 0.85 && !isBanzai) || (s.role === "HMG" && !s.tripod)) continue;
+
+      s.cd -= dt;
+      if (s.cd > 0) continue;
+
+      var rangeMult = (s.team === 0 && s.onWall) ? 1.25 : 1.0;
+      var maxR = (s.role === "HMG" ? 680 : (s.role === "MG" ? 510 : 420)) * rangeMult;
+
+      var enemyLt = lieutenants[1 - s.team];
+      var isSoldierSafe = (s.sup < 0.45 && s.hp > 45 && !s.squad.isPanicked);
+
+      if (!s.tgt || (s.tgt.st !== undefined && s.tgt.st !== 0) || (s.tgt.alive !== undefined && !s.tgt.alive) || Math.random() < 0.30) {
+        s.tgt = null; var bestSc = maxR * maxR;
+
+        if (isSoldierSafe && enemyLt && enemyLt.alive) {
+          var ltD = dSq(s.x, s.y, enemyLt.x, enemyLt.y);
+          if (ltD < maxR * maxR && clearLOS(s.x, s.y, enemyLt.x, enemyLt.y, s.onWall, false)) {
+            bestSc = ltD * 0.42;
+            s.tgt = enemyLt;
+          }
+        }
+
+        for (var eI = 0; eI < soldiers.length; eI++) {
+          var en = soldiers[eI];
+          if (en.team !== s.team && en.st === 0) {
+            var ed = dSq(s.x, s.y, en.x, en.y);
+            var ladderPriority = en.climbingLadder ? 0.35 : 1.0;
+            if (ed * ladderPriority < bestSc && clearLOS(s.x, s.y, en.x, en.y, s.onWall, en.onWall)) {
+              bestSc = ed * ladderPriority; s.tgt = en;
+            }
+          }
+        }
+
+        if (!s.tgt && s.team === 1 && s.y > 5850) {
+          for (var cIdx = 0; cIdx < civilians.length; cIdx++) {
+            var civT = civilians[cIdx];
+            if (civT.alive) {
+              var cdSq = dSq(s.x, s.y, civT.x, civT.y);
+              if (cdSq < maxR * maxR) { bestSc = cdSq; s.tgt = civT; break; }
+            }
+          }
+        }
+      }
+
+      // Axis Demolition / Fire against Bridge Sandbag Barriers & City Gates
+      if (!s.tgt && s.team === 1) {
+        var nearBrB = bridgeBarriers[getNearestBridge(s.x).id];
+        if (nearBrB && nearBrB.hp > 0 && dist(s.x, s.y, nearBrB.cx, nearBrB.cy) < 340) {
+          s.ang = Math.atan2(nearBrB.cy - s.y, nearBrB.cx - s.x);
+          if (s.hasGrenade && dist(s.x, s.y, nearBrB.cx, nearBrB.cy) < 210) {
+            s.hasGrenade = false;
+            throwFragGrenade(s.x, s.y, nearBrB.cx + rand(-25, 25), nearBrB.y + 10, 1);
+            s.cd = 1.4; continue;
+          }
+          s.recoil = 3.2; s.flash = 0.06;
+          fireBullet(s.x, s.y, s.ang + rand(-0.04, 0.04), 720, 1, s.role === "AP" ? 55 : 28, 0.1, false, 0.65);
+          s.cd = rand(1.1, 1.6); continue;
+        }
+        var siegeG = getNearestGate(s.x, s.y);
+        if (siegeG.hp > 0 && dist(s.x, s.y, siegeG.cx, siegeG.cy) < 340) {
+          s.ang = Math.atan2(siegeG.cy - s.y, siegeG.cx - s.x);
+          if (s.hasGrenade && dist(s.x, s.y, siegeG.cx, siegeG.cy) < 210) {
+            s.hasGrenade = false;
+            throwFragGrenade(s.x, s.y, siegeG.cx + rand(-25, 25), siegeG.y + 12, 1);
+            s.cd = 1.4; continue;
+          }
+          s.recoil = 3.2; s.flash = 0.06;
+          fireBullet(s.x, s.y, s.ang + rand(-0.04, 0.04), 720, 1, s.role === "AP" ? 55 : 28, 0.1, false, 0.65);
+          s.cd = rand(1.1, 1.6); continue;
+        }
+      }
+
+      if (!s.tgt) { s.cd = 0.30; continue; }
+
+      var aim = Math.atan2(s.tgt.y - s.y, s.tgt.x - s.x);
+      s.ang = aim;
+      var dEnemySq = dSq(s.x, s.y, s.tgt.x, s.tgt.y);
+      if (s.hasGrenade && dEnemySq < 195 * 195 && dEnemySq > 45 * 45 && Math.random() < 0.35) {
+        s.hasGrenade = false;
+        throwFragGrenade(s.x, s.y, s.tgt.x + rand(-18, 18), s.tgt.y + rand(-18, 18), s.team);
+        s.cd = 1.2; continue;
+      }
+
+      var sway = (s.role === "HMG" ? 0.028 : 0.042) + s.sup * 0.14;
+      var shotA = aim + rand(-sway, sway);
+      s.recoil = 3.5; s.flash = 0.07;
+      s.squad.ammo = Math.max(5, s.squad.ammo - 0.10);
+      var enfiladeMult = hasEnfiladeBonus(s) ? 0.78 : 1.0;
+      var ltDmgMult = s.squad.hasLtAura ? 1.25 : 1.0;
+
+      // HISTORICAL WEAPON CYCLING & RELOAD REALISM:
+      // 1. HMG (Type 24 Maxim / Type 92 Heavy MG): High-velocity 760 px/s, 8-round bursts, 30-round strip/belt reload (4.2s)
+      if (s.role === "HMG") {
+        fireBullet(s.x, s.y, shotA, 760, s.team, Math.round(30 * ltDmgMult), 0.36, false, 0.95);
+        spawnMuzzleSparks(s.x + Math.cos(s.ang) * 10, s.y + Math.sin(s.ang) * 10, s.ang, true);
+        s.roundsLeft--;
+        if (s.roundsLeft <= 0) {
+          s.roundsLeft = 30;
+          s.cd = 4.2 * enfiladeMult; // Belt/strip reload
+        } else if (s.burst > 0) {
+          s.burst--;
+          s.cd = 0.09 * enfiladeMult;
+        } else {
+          s.burst = 7;
+          s.cd = rand(0.85, 1.35) * enfiladeMult;
+        }
+      }
+      // 2. LMG (ZB vz. 26 / Type 11 LMG): High-velocity 730 px/s, 5-round bursts, 20-round box/hopper reload (3.2s)
+      else if (s.role === "MG") {
+        fireBullet(s.x, s.y, shotA, 730, s.team, Math.round(25 * ltDmgMult), 0.25, false, 0.85);
+        s.roundsLeft--;
+        if (s.roundsLeft <= 0) {
+          s.roundsLeft = 20;
+          s.cd = 3.2 * enfiladeMult; // 20-round box magazine reload
+        } else if (s.burst > 0) {
+          s.burst--;
+          s.cd = 0.10 * enfiladeMult;
+        } else {
+          s.burst = 4;
+          s.cd = rand(0.95, 1.45) * enfiladeMult;
+        }
+      }
+      // 3. Bolt-Action Rifles (Chiang Kai-shek Mauser / Type 38 Arisaka): 750 px/s velocity, 1.35s-1.75s bolt cycle, 5-round stripper clip reload (3.1s)
+      else {
+        fireBullet(s.x, s.y, shotA, 750, s.team, Math.round(42 * ltDmgMult), 0.16, false, 0.80);
+        s.roundsLeft--;
+        if (s.roundsLeft <= 0) {
+          s.roundsLeft = 5;
+          s.cd = 3.1 * enfiladeMult; // 5-round stripper clip reload
+        } else {
+          s.cd = rand(1.35, 1.75) * enfiladeMult; // Bolt-action cycle time
+        }
+      }
+    }
+
+    // Frag Grenades
+    for (var gIdx = grenades.length - 1; gIdx >= 0; gIdx--) {
+      var gr = grenades[gIdx]; gr.t += dt;
+      var pRatio = clamp(gr.t / gr.dur, 0, 1);
+      gr.x = gr.sx + (gr.tx - gr.sx) * pRatio; gr.y = gr.sy + (gr.ty - gr.sy) * pRatio;
+      if (gr.t >= gr.dur) {
+        spawnExplosion(gr.tx, gr.ty, 44, false, false);
+        for (var gbI = 0; gbI < bridgeBarriers.length; gbI++) {
+          var gBar = bridgeBarriers[gbI];
+          if (gBar.hp > 0 && gr.tx + 48 > gBar.x && gr.tx - 48 < gBar.x + gBar.w && gr.ty + 48 > gBar.y && gr.ty - 48 < gBar.y + gBar.h) {
+            gBar.hp = Math.max(0, gBar.hp - 260);
+            if (gBar.hp < gBar.maxHp * 0.25) breachAlarmTimer = 4.0;
+          }
+        }
+        for (var ggI = 0; ggI < gates.length; ggI++) {
+          var gGate = gates[ggI];
+          if (gGate.hp > 0 && gr.tx + 48 > gGate.x && gr.tx - 48 < gGate.x + gGate.w && gr.ty + 48 > gGate.y && gr.ty - 48 < gGate.y + gGate.h) {
+            gGate.hp = Math.max(0, gGate.hp - 240);
+            if (gGate.hp < gGate.maxHp * 0.25) breachAlarmTimer = 4.0;
+          }
+        }
+        for (var gsI = 0; gsI < soldiers.length; gsI++) {
+          var gs = soldiers[gsI];
+          if (gs.st === 0 && dSq(gr.tx, gr.ty, gs.x, gs.y) < 44 * 44) {
+            gs.sup = clamp(gs.sup + 0.85, 0, 1);
+            gs.hp -= (gs.onWall || gs.inTrench) ? 35 : 85;
+            gs.squad.underAttackT = 6.0;
+            if (gs.hp <= 0) {
+              gs.st = Math.random() < 0.60 ? 1 : 2;
+              if (gs.st === 2) { gs.squad.casualties++; totalMilKia++; }
+              addScar(gs.x, gs.y, 6, "blood");
+              addHeat(gs.x, gs.y, 1.5);
+            }
+          }
+        }
+        grenades.splice(gIdx, 1);
+      }
+    }
+
+    // Step Projectiles
+    var activeProj = 0;
+    for (var bI = 0; bI < MAX_PROJ; bI++) {
+      var p = projectiles[bI];
+      if (!p.active) continue;
+      p.prevX = p.x; p.prevY = p.y;
+      var nx = p.x + p.vx * dt, ny = p.y + p.vy * dt;
+      p.life -= dt;
+      if (p.life <= 0 || nx < 0 || nx > W || ny < 0 || ny > H) { p.active = false; continue; }
+
+      var wh = traceWall(
+        p.prevX, p.prevY, nx, ny,
+        p.team === 0 && p.prevY >= WALL_Y - 54 && p.prevY <= WALL_Y + 54,
+        p.penWall
+      );
+      if (wh) {
+        if (wh.obj) {
+          if (wh.obj.isBridgeBarrier || wh.obj.isGate) {
+            if (p.team === 1) {
+              wh.obj.hp = Math.max(0, wh.obj.hp - (p.isShell ? p.dmg * 1.5 : p.dmg * 0.45));
+              if (wh.obj.hp < wh.obj.maxHp * 0.25) breachAlarmTimer = 3.5;
+              if (wh.obj.hp <= 0 && !wh.obj.breachedNotified) {
+                wh.obj.breachedNotified = true;
+                breachAlarmTimer = 8.0;
+                spawnExplosion(wh.obj.cx, wh.obj.cy, 95, true, false);
+              }
+            }
+          } else if (wh.obj.isAT) {
+            wh.obj.hp -= p.isShell ? p.dmg : p.dmg * 0.12;
+          } else if (wh.obj.hp !== undefined) {
+            wh.obj.hp -= p.isShell ? 45 : (p.dmg > 26 ? 0.65 : 0.25);
+            if (wh.obj.hp <= 0 && wh.obj.w) addScar(wh.x, wh.y, 28, "rubble");
+          }
+        }
+        if (p.isShell) spawnExplosion(wh.x, wh.y, 52, true, false);
+        else spawnRicochet(wh.x, wh.y, true);
+        p.active = false; continue;
+      }
+
+      var hitLt = false;
+      for (var ltI = 0; ltI < 2; ltI++) {
+        var ltTarget = lieutenants[ltI];
+        if (ltTarget && ltTarget.alive && ltTarget.team !== p.team) {
+          var ltDistSq = pointToSegmentDistSq(ltTarget.x, ltTarget.y, p.prevX, p.prevY, nx, ny);
+          if (ltDistSq < (p.isShell ? 22 * 22 : 9.0 * 9.0)) {
+            ltTarget.hp -= p.dmg;
+            addScar(nx, ny, 5, "blood");
+            if (ltTarget.hp <= 0) {
+              ltTarget.alive = false;
+              ltTarget.respawnT = 55.0;
+              totalMilKia++;
+              spawnExplosion(ltTarget.x, ltTarget.y, 48, false, false);
+            }
+            p.active = false; hitLt = true; break;
+          }
+        }
+      }
+      if (hitLt) continue;
+
+      if (p.team === 1 && ny > 6050) {
+        var hitCiv = false;
+        for (var cI2 = 0; cI2 < civilians.length; cI2++) {
+          var cv0 = civilians[cI2];
+          if (cv0.alive && pointToSegmentDistSq(cv0.x, cv0.y, p.prevX, p.prevY, nx, ny) < 8 * 8) {
+            cv0.hp -= p.dmg;
+            if (cv0.hp <= 0) {
+              cv0.alive = false;
+              civsKilled++;
+              addScar(cv0.x, cv0.y, 5, "blood");
+              if (civsKilled >= MAX_CIV_KIA_LIMIT) {
+                triggerEndGame(false, "Imperial troops broke through to Xiakou Port and killed " + civsKilled + " civilians before evacuation could finish.");
+              }
+            }
+            p.active = false; hitCiv = true; break;
+          }
+        }
+        if (hitCiv) continue;
+      }
+
+      var hitSoldier = false;
+      for (var j = 0; j < soldiers.length; j++) {
+        var sol = soldiers[j];
+        if (sol.team === p.team || sol.st !== 0) continue;
+        if (Math.abs(sol.x - nx) > 32 || Math.abs(sol.y - ny) > 32) continue;
+        var sdSq = pointToSegmentDistSq(sol.x, sol.y, p.prevX, p.prevY, nx, ny);
+        if (sdSq < 28 * 28) {
+          sol.sup = clamp(sol.sup + p.supPower * ((sol.inCov || sol.onWall || sol.inTrench) ? 0.42 : 1.0), 0, 1);
+          sol.squad.underAttackT = 5.0;
+        }
+        if (sdSq < (p.isShell ? 24 * 24 : 7.5 * 7.5)) {
+          if (p.isShell) spawnExplosion(nx, ny, 54, true, false);
+          else addScar(nx, ny, 4.5, "blood");
+
+          if (sol.team === 0 && sol.onWall) {
+            sol.hp -= p.isShell ? p.dmg * 0.85 : p.dmg * 0.65;
+          } else if (sol.inTrench) {
+            if (!p.isShell && Math.random() < 0.68) {
+              spawnRicochet(nx, ny, true);
+              p.active = false; hitSoldier = true; break;
+            }
+            sol.hp -= p.isShell ? p.dmg * 0.75 : p.dmg * 0.32;
+          } else {
+            var hillAdv = sol.y < 2450 ? 0.16 : 0;
+            var save = (sol.inCov && sol.node && !sol.climbingLadder) ? (sol.squad.cluster ? sol.squad.cluster.bonus : sol.node.bonus) : 0.04;
+            if (sol.climbingLadder || Math.random() > clamp(save + hillAdv, 0, 0.85) || p.isShell) {
+              sol.hp -= sol.climbingLadder ? p.dmg * 1.35 : p.dmg;
+            }
+          }
+
+          if (sol.hp <= 0) {
+            sol.st = Math.random() < 0.65 ? 1 : 2;
+            if (sol.st === 2) { sol.squad.casualties++; totalMilKia++; }
+            sol.bleed = 16.0; sol.climbingLadder = null;
+            sol.squad.morale = clamp(sol.squad.morale - (sol === sol.squad.activeLeader ? 12 : 5), 0, 100);
+            addHeat(sol.x, sol.y, 1.5);
+          }
+          p.active = false; hitSoldier = true; break;
+        }
+      }
+      if (hitSoldier) continue;
+
+      p.x = nx; p.y = ny; activeProj++;
+
+      for (var tIdx = 0; tIdx < tanks.length; tIdx++) {
+        var tk2 = tanks[tIdx];
+        if (tk2.alive && tk2.team !== p.team && dSq(p.x, p.y, tk2.x, tk2.y) < 22 * 22) {
+          tk2.hp -= p.isShell ? p.dmg : p.dmg * 0.22;
+          spawnRicochet(p.x, p.y, false);
+          if (tk2.hp <= 0) {
+            tk2.alive = false;
+            spawnExplosion(tk2.x, tk2.y, 82, true, false);
+            wrecks.push({ x: tk2.x, y: tk2.y, ang: tk2.ang, crushed: false });
+          }
+          p.active = false; break;
+        }
+      }
+    }
+
+    // Update 10 Sector Flags
+    var axisOwnedFlags = 0;
+    for (var fI = 0; fI < flags.length; fI++) {
+      var fl = flags[fI], cAllies = 0, cAxis = 0, rSq = fl.r * fl.r;
+      for (var k = 0; k < soldiers.length; k++) {
+        var fs = soldiers[k];
+        if (fs.st === 0 && dSq(fs.x, fs.y, fl.x, fl.y) <= rSq) {
+          if (fs.team === 0) cAllies++; else cAxis++;
+        }
+      }
+      if (cAllies > 0 && cAxis === 0) {
+        fl.timer = clamp(fl.timer + dt * (1 + Math.min(2.0, cAllies * 0.08)), -30.0, 30.0);
+        fl.state = fl.own === 0 ? "ALLIES" : "CAPTURING (ALLIES)";
+        if (fl.timer >= 30.0) { fl.own = 0; fl.state = "ALLIES"; }
+      } else if (cAxis > 0 && cAllies === 0) {
+        fl.timer = clamp(fl.timer - dt * (1 + Math.min(2.0, cAxis * 0.08)), -30.0, 30.0);
+        fl.state = fl.own === 1 ? "AXIS" : "CAPTURING (AXIS)";
+        if (fl.timer <= -30.0) { fl.own = 1; fl.state = "AXIS"; }
+      } else if (cAllies > 0 && cAxis > 0) {
+        fl.state = "CONTESTED";
+      } else {
+        fl.state = fl.own === 0 ? "ALLIES" : "AXIS";
+      }
+      if (fl.own === 1) axisOwnedFlags++;
+    }
+
+    if (axisOwnedFlags === flags.length) {
+      triggerEndGame(false, "Imperial forces captured all 10 defensive sectors including Xiakou Port Plaza, cutting off the Yangtze evacuation.");
+    }
+
+    for (var ptI = particles.length - 1; ptI >= 0; ptI--) {
+      var pt = particles[ptI];
+      pt.x += pt.vx * dt; pt.y += pt.vy * dt;
+      pt.vx *= pt.drag; pt.vy *= pt.drag;
+      pt.life -= dt;
+      if (pt.life <= 0) particles.splice(ptI, 1);
+    }
+    for (var swI = shockwaves.length - 1; swI >= 0; swI--) {
+      var swv = shockwaves[swI];
+      swv.r += swv.spd * dt; swv.alpha -= 2.1 * dt;
+      if (swv.alpha <= 0 || swv.r >= swv.maxR) shockwaves.splice(swI, 1);
+    }
+    for (var smI = smokes.length - 1; smI >= 0; smI--) {
+      var sm = smokes[smI]; sm.life -= dt; sm.r = Math.min(sm.maxR, sm.r + 22 * dt);
+      if (sm.life <= 0) smokes.splice(smI, 1);
+    }
+    for (var rpI = ripples.length - 1; rpI >= 0; rpI--) {
+      var rp = ripples[rpI]; rp.r += 65 * dt; rp.a -= 1.8 * dt;
+      if (rp.a <= 0) ripples.splice(rpI, 1);
+    }
+    for (var fgI = 0; fgI < fogClouds.length; fgI++) {
+      var fg = fogClouds[fgI];
+      fg.x += fg.vx * dt; fg.y += fg.vy * dt;
+      if (fg.x - fg.r > W) fg.x = -fg.r;
+      if (fg.y - fg.r > H) fg.y = -fg.r;
+      if (fg.y + fg.r < 0) fg.y = H + fg.r;
+    }
+
+    return activeProj;
+  }
+  /****************************************************************************
+   * 4. RENDERING ENGINE, HELMET VISUALS, TRANSPARENT NAMETAGS & INPUT BINDINGS
+   ****************************************************************************/
+  function getSquadColor(sq) {
+    if (sq.team === 1) {
+      return sq.isIndependent ? "#d28cff" : "#ff473d";
+    }
+    if (sq.isIndependent) return "#ffcc33";
+    if (sq.isCopilot) return "#34ebba";
+    return "#38d6ff";
+  }
+
+  function renderScene(nowSec) {
+    resize();
+    var z = cam.z;
+
+    // 1. Procedural Textured Ground & Topographic Yuhuatai Hills
+    ctx.save();
+    ctx.fillStyle = patterns.earth || "#22291c";
+    ctx.fillRect(0, 0, sw, sh);
+
+    var hx = sx(1800), hy = sy(1450);
+    if (hy > -1200 * z && hy < sh + 1200 * z) {
+      [1280, 1020, 760, 480].forEach(function(r, idx) {
+        ctx.fillStyle = idx % 2 === 0 ? (patterns.hill || "#313b27") : "rgba(62, 74, 48, 0.55)";
+        ctx.beginPath(); ctx.arc(hx, hy, r * z, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "rgba(195, 205, 155, 0.20)"; ctx.lineWidth = 1.8; ctx.stroke();
+      });
+      trenches.forEach(function(pts) {
+        ctx.beginPath();
+        pts.forEach(function(p, i) { if (i === 0) ctx.moveTo(sx(p.x), sy(p.y)); else ctx.lineTo(sx(p.x), sy(p.y)); });
+        ctx.strokeStyle = "#14120e"; ctx.lineWidth = Math.max(3.5, 13 * z); ctx.stroke();
+        ctx.strokeStyle = "#5c5038"; ctx.lineWidth = Math.max(1, 3.2 * z); ctx.stroke();
+      });
+    }
+
+    // 2. Cobblestone Roads
+    ctx.fillStyle = patterns.cobble || "#353430";
+    for (var rI = 0; rI < roads.length; rI++) {
+      var rd = roads[rI];
+      var rx0 = sx(rd.x), ry0 = sy(rd.y), rw0 = rd.w * z, rh0 = rd.h * z;
+      ctx.fillRect(rx0, ry0, rw0, rh0);
+      ctx.strokeStyle = "rgba(25,24,20,0.6)"; ctx.lineWidth = 1.5;
+      ctx.strokeRect(rx0, ry0, rw0, rh0);
+    }
+
+    // 2b. Qinhuai River Moat (Y: 2520..2800) & 2 Bridges
+    var moatY1S = sy(MOAT_Y1), moatY2S = sy(MOAT_Y2);
+    if (moatY2S > 0 && moatY1S < sh) {
+      ctx.fillStyle = "#132936";
+      ctx.fillRect(sx(0), moatY1S, W * z, moatY2S - moatY1S);
+      // Bridge wooden decks
+      for (var bIdx = 0; bIdx < bridges.length; bIdx++) {
+        var br = bridges[bIdx];
+        var bx0 = sx(br.x), by0 = sy(br.y), bw0 = br.w * z, bh0 = br.h * z;
+        ctx.fillStyle = patterns.dock || "#4a3828";
+        ctx.fillRect(bx0, by0, bw0, bh0);
+        ctx.strokeStyle = "#241911"; ctx.lineWidth = 2;
+        ctx.strokeRect(bx0, by0, bw0, bh0);
+      }
+    }
+
+    // 2c. Yangtze River (Y: 6550..7200), Stone Embankment, 3 Piers & Evacuation Boats
+    var rivY = sy(RIVER_Y);
+    if (rivY < sh + 100) {
+      ctx.fillStyle = "#132936";
+      ctx.fillRect(0, rivY, sw, sh - rivY + 200);
+      ctx.strokeStyle = "rgba(95, 175, 215, 0.22)";
+      ctx.lineWidth = Math.max(1, 2 * z);
+      for (var wy = RIVER_Y + 35; wy < H - 20; wy += 55) {
+        var wyS = sy(wy);
+        if (wyS < 0 || wyS > sh) continue;
+        ctx.beginPath();
+        for (var wx = 100; wx < W - 100; wx += 140) {
+          var wOff = Math.sin(nowSec * 2.2 + wx * 0.01 + wy) * 18 * z;
+          ctx.moveTo(sx(wx) + wOff, wyS);
+          ctx.lineTo(sx(wx + 65) + wOff, wyS);
+        }
+        ctx.stroke();
+      }
+      ctx.fillStyle = "#4a4842";
+      ctx.fillRect(sx(0), rivY - 12 * z, W * z, 14 * z);
+      ctx.strokeStyle = "#1c1b18"; ctx.lineWidth = 2;
+      ctx.strokeRect(sx(0), rivY - 12 * z, W * z, 14 * z);
+
+      for (var pIdx = 0; pIdx < piers.length; pIdx++) {
+        var pr = piers[pIdx];
+        var px0 = sx(pr.x), py0 = sy(pr.y), pw0 = pr.w * z, ph0 = pr.h * z;
+        ctx.fillStyle = patterns.dock || "#4a3828";
+        ctx.fillRect(px0, py0, pw0, ph0);
+        ctx.strokeStyle = "#241911"; ctx.lineWidth = 2;
+        ctx.strokeRect(px0, py0, pw0, ph0);
+      }
+
+      for (var bIdx2 = 0; bIdx2 < boats.length; bIdx2++) {
+        var bt = boats[bIdx2];
+        var bx = sx(bt.x), by = sy(bt.y), bwB = 34 * z, bhB = 58 * z;
+        ctx.fillStyle = "#3d2e21";
+        ctx.beginPath();
+        ctx.moveTo(bx, by - bhB * 0.55);
+        ctx.lineTo(bx + bwB * 0.5, by - bhB * 0.25);
+        ctx.lineTo(bx + bwB * 0.5, by + bhB * 0.5);
+        ctx.lineTo(bx - bwB * 0.5, by + bhB * 0.5);
+        ctx.lineTo(bx - bwB * 0.5, by - bhB * 0.25);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "#d8cfc2"; ctx.lineWidth = 1.5; ctx.stroke();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 9px ui-monospace, monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("BOAT [" + bt.onboard + "/" + bt.capacity + "]", bx, by + bhB * 0.5 + 12);
+      }
+    }
+    ctx.restore();
+
+    for (var cIdx2 = 0; cIdx2 < civilians.length; cIdx2++) {
+      var civ = civilians[cIdx2];
+      if (!civ.alive) continue;
+      var cxC = sx(civ.x), cyC = sy(civ.y);
+      if (cxC < -20 || cxC > sw + 20 || cyC < -20 || cyC > sh + 20) continue;
+      ctx.fillStyle = civ.color;
+      ctx.beginPath(); ctx.arc(cxC, cyC, Math.max(2.6, 3.8 * z), 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#111"; ctx.lineWidth = 0.8; ctx.stroke();
+    }
+
+    // Urban Defense Trenches
+    for (var utI = 0; utI < urbanTrenches.length; utI++) {
+      var ut = urbanTrenches[utI];
+      var ux0 = sx(ut.x), uy0 = sy(ut.y - 14), uw0 = ut.w * z, uh0 = 28 * z;
+      if (ux0 + uw0 < 0 || ux0 > sw || uy0 + uh0 < 0 || uy0 > sh) continue;
+      ctx.fillStyle = "#171410";
+      ctx.fillRect(ux0, uy0, uw0, uh0);
+      ctx.strokeStyle = "#6e5d45"; ctx.lineWidth = Math.max(1.5, 3 * z);
+      ctx.strokeRect(ux0, uy0, uw0, uh0);
+    }
+
+    // Battlefield Scars
+    for (var scI = 0; scI < scars.length; scI++) {
+      var sc = scars[scI], scX = sx(sc.x), scY = sy(sc.y), scR = Math.max(2, sc.r * z);
+      if (scX + scR < 0 || scX - scR > sw || scY + scR < 0 || scY - scR > sh) continue;
+      if (sc.type === "crater") {
+        ctx.fillStyle = "rgba(14, 12, 10, 0.68)";
+        ctx.beginPath(); ctx.arc(scX, scY, scR, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "rgba(75, 62, 46, 0.55)"; ctx.lineWidth = Math.max(1, 2.5 * z); ctx.stroke();
+      } else {
+        ctx.fillStyle = "rgba(125, 22, 18, 0.65)";
+        ctx.beginPath(); ctx.arc(scX, scY, scR, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    // Barbed-Wire Zones
+    for (var wZ = 0; wZ < wireZones.length; wZ++) {
+      var wz = wireZones[wZ], wx0 = sx(wz.x), wy0 = sy(wz.y), ww0 = wz.w * z, wh0 = wz.h * z;
+      if (wx0 + ww0 < 0 || wx0 > sw || wy0 + wh0 < 0 || wy0 > sh) continue;
+      ctx.strokeStyle = "#8c968e"; ctx.lineWidth = Math.max(1, 1.5 * z);
+      ctx.beginPath();
+      var coils = Math.max(6, Math.floor(wz.w / 28));
+      for (var c = 0; c < coils; c++) {
+        var cxW = wx0 + (c / coils) * ww0;
+        ctx.moveTo(cxW, wy0); ctx.lineTo(cxW + ww0 / coils, wy0 + wh0);
+        ctx.moveTo(cxW + ww0 / coils, wy0); ctx.lineTo(cxW, wy0 + wh0);
+      }
+      ctx.stroke();
+    }
+
+    // Armored Wrecks
+    for (var wrI = 0; wrI < wrecks.length; wrI++) {
+      var wr = wrecks[wrI];
+      if (wr.crushed) continue;
+      var wrX = sx(wr.x), wrY = sy(wr.y);
+      if (wrX < -40 || wrX > sw + 40 || wrY < -40 || wrY > sh + 40) continue;
+      ctx.save();
+      ctx.translate(wrX, wrY); ctx.rotate(wr.ang);
+      ctx.fillStyle = "#1c1917"; ctx.fillRect(-16 * z, -10 * z, 32 * z, 20 * z);
+      ctx.strokeStyle = "#3d332a"; ctx.lineWidth = 1.5; ctx.strokeRect(-16 * z, -10 * z, 32 * z, 20 * z);
+      ctx.restore();
+    }
+
+    // Sandbags & 15,000 HP Bridge Barriers
+    for (var sbI = 0; sbI < sandbags.length; sbI++) {
+      var sb = sandbags[sbI];
+      if (sb.hp <= 0) continue;
+      var sbX = sx(sb.x), sbY = sy(sb.y);
+      ctx.fillStyle = sb.hp > 5 ? "#9e9678" : "#6e654f";
+      ctx.fillRect(sbX - 15 * z, sbY - 7 * z, 30 * z, 14 * z);
+      ctx.strokeStyle = "#2b261d"; ctx.lineWidth = 1.2; ctx.strokeRect(sbX - 15 * z, sbY - 7 * z, 30 * z, 14 * z);
+    }
+
+    for (var bbI = 0; bbI < bridgeBarriers.length; bbI++) {
+      var bb = bridgeBarriers[bbI];
+      if (bb.hp <= 0) continue;
+      var bbx = sx(bb.x), bby = sy(bb.y), bbw = bb.w * z, bbh = bb.h * z;
+      ctx.fillStyle = bb.hp < bb.maxHp * 0.25 ? "#5e2c24" : "#8c7e62";
+      ctx.fillRect(bbx, bby, bbw, bbh);
+      ctx.strokeStyle = "#2b2319"; ctx.lineWidth = 2; ctx.strokeRect(bbx, bby, bbw, bbh);
+
+      var bCx = sx(bb.cx), bCy = sy(bb.y) - 10;
+      var bW = Math.max(76, 120 * z), bH = 7;
+      var bFrac = clamp(bb.hp / bb.maxHp, 0, 1);
+      ctx.fillStyle = "rgba(10, 14, 10, 0.90)"; ctx.fillRect(bCx - bW * 0.5, bCy - bH, bW, bH);
+      ctx.fillStyle = bFrac > 0.5 ? "#58ff8a" : (bFrac > 0.25 ? "#ffae33" : "#ff473d");
+      ctx.fillRect(bCx - bW * 0.5, bCy - bH, bW * bFrac, bH);
+      ctx.strokeStyle = "#5c7a56"; ctx.lineWidth = 1; ctx.strokeRect(bCx - bW * 0.5, bCy - bH, bW, bH);
+
+      ctx.fillStyle = "#ffe799"; ctx.font = "bold 9px ui-monospace, monospace"; ctx.textAlign = "center";
+      ctx.fillText(bb.name + " [" + Math.ceil(bb.hp) + " HP]", bCx, bCy - 12);
+    }
+
+    for (var atI = 0; atI < atObstacles.length; atI++) {
+      var at = atObstacles[atI];
+      if (at.hp <= 0) continue;
+      var atX = sx(at.x), atY = sy(at.y);
+      ctx.fillStyle = "#7a8288"; ctx.strokeStyle = "#1a1e21"; ctx.lineWidth = 1.4;
+      [-11, 0, 11].forEach(function(dxTooth) {
+        var tx0 = atX + dxTooth * z;
+        ctx.beginPath(); ctx.moveTo(tx0, atY - 9 * z); ctx.lineTo(tx0 + 7 * z, atY + 8 * z); ctx.lineTo(tx0 - 7 * z, atY + 8 * z); ctx.closePath();
+        ctx.fill(); ctx.stroke();
+      });
+    }
+
+    // Walls, Battlements & Zhonghua City Gates
+    for (var oI = 0; oI < walls.length; oI++) {
+      var ob = walls[oI];
+      if (ob.hp <= 0) continue;
+      var ox = sx(ob.x), oy = sy(ob.y), ow = ob.w * z, oh = ob.h * z;
+      if (ox + ow < 0 || ox > sw || oy + oh < 0 || oy > sh) continue;
+      ctx.fillStyle = ob.t === 0 ? "#4c5249" : (ob.t === 1 ? (patterns.brick || "#4a382e") : (patterns.ruin || "#423a34"));
+      ctx.fillRect(ox, oy, ow, oh);
+      ctx.strokeStyle = "#171412"; ctx.lineWidth = 2; ctx.strokeRect(ox, oy, ow, oh);
+
+      if (ob.isBattlement) {
+        ctx.fillStyle = "#59483e";
+        for (var mx0 = ox + 6 * z; mx0 < ox + ow - 14 * z; mx0 += 28 * z) {
+          ctx.fillRect(mx0, oy, 16 * z, 9 * z);
+        }
+      }
+    }
+
+    for (var gIdx = 0; gIdx < gates.length; gIdx++) {
+      var gt = gates[gIdx];
+      var gx0 = sx(gt.x), gy0 = sy(gt.y), gw0 = gt.w * z, gh0 = gt.h * z;
+      if (gx0 + gw0 < -40 || gx0 > sw + 40 || gy0 + gh0 < -40 || gy0 > sh + 40) continue;
+
+      if (gt.hp > 0) {
+        ctx.fillStyle = gt.hp < gt.maxHp * 0.25 ? "#5e2c24" : "#3b2d22";
+        ctx.fillRect(gx0, gy0, gw0, gh0);
+        ctx.strokeStyle = "#9e8c6c"; ctx.lineWidth = 2.5; ctx.strokeRect(gx0, gy0, gw0, gh0);
+      } else {
+        ctx.fillStyle = "rgba(55, 45, 38, 0.55)";
+        ctx.fillRect(gx0, gy0, gw0, gh0);
+        ctx.strokeStyle = "#ff473d"; ctx.lineWidth = 1.5; ctx.strokeRect(gx0, gy0, gw0, gh0);
+      }
+
+      var gCx = sx(gt.cx), gCy = sy(gt.y) - 14;
+      var barW = Math.max(76, 128 * z), barH = 8;
+      var hpFrac = clamp(gt.hp / gt.maxHp, 0, 1);
+      ctx.fillStyle = "rgba(10, 14, 10, 0.92)"; ctx.fillRect(gCx - barW * 0.5, gCy - barH, barW, barH);
+      ctx.fillStyle = hpFrac > 0.5 ? "#58ff8a" : (hpFrac > 0.25 ? "#ffae33" : "#ff473d");
+      ctx.fillRect(gCx - barW * 0.5, gCy - barH, barW * hpFrac, barH);
+      ctx.strokeStyle = "#5c7a56"; ctx.lineWidth = 1; ctx.strokeRect(gCx - barW * 0.5, gCy - barH, barW, barH);
+
+      ctx.fillStyle = gt.hp > 0 ? "#ffe799" : "#ff473d";
+      ctx.font = "bold 9.5px ui-monospace, monospace"; ctx.textAlign = "center";
+      ctx.fillText(gt.name + (gt.hp > 0 ? " [" + Math.ceil(gt.hp) + " HP]" : " [BREACHED!]"), gCx, gCy - 14);
+    }
+
+    // Siege Ladders
+    for (var ldIdx = 0; ldIdx < ladders.length; ldIdx++) {
+      var lad = ladders[ldIdx];
+      var lx0 = sx(lad.x), lyTop = sy(lad.topY), lyBot = sy(lad.botY);
+      if (lx0 < -20 || lx0 > sw + 20) continue;
+      ctx.strokeStyle = lad.pitchT > 0 ? "#ff4500" : (lad.active ? "#ffae33" : "#7a6548");
+      ctx.lineWidth = Math.max(1.5, 2.5 * z);
+      ctx.beginPath();
+      ctx.moveTo(lx0 - 6 * z, lyTop); ctx.lineTo(lx0 - 6 * z, lyBot);
+      ctx.moveTo(lx0 + 6 * z, lyTop); ctx.lineTo(lx0 + 6 * z, lyBot);
+      for (var ryL = lyTop + 6 * z; ryL < lyBot; ryL += 10 * z) {
+        ctx.moveTo(lx0 - 6 * z, ryL); ctx.lineTo(lx0 + 6 * z, ryL);
+      }
+      ctx.stroke();
+    }
+
+    // 10 Sector Flags
+    for (var fI = 0; fI < flags.length; fI++) {
+      var fl = flags[fI], fx = sx(fl.x), fy = sy(fl.y), fr = fl.r * z;
+      if (fy + fr < 0 || fy - fr > sh || fx + fr < 0 || fx - fr > sw) continue;
+      ctx.strokeStyle = fl.own === 0 ? "rgba(56, 214, 255, 0.65)" : "rgba(255, 71, 61, 0.65)";
+      ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(fx, fy, fr, 0, Math.PI * 2); ctx.stroke();
+
+      var prog = Math.abs(fl.timer) / 30.0;
+      ctx.strokeStyle = fl.timer >= 0 ? "#38d6ff" : "#ff473d"; ctx.lineWidth = 4.5;
+      ctx.beginPath(); ctx.arc(fx, fy, Math.max(12, 22 * z), -1.57, -1.57 + Math.PI * 2 * prog); ctx.stroke();
+
+      ctx.fillStyle = "rgba(10, 15, 11, 0.90)"; ctx.fillRect(fx - 70, fy - 8, 140, 16);
+      ctx.fillStyle = "#58ff8a"; ctx.font = "bold 9.5px ui-monospace, monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(fl.name + " [" + Math.round(Math.abs(fl.timer)) + "s]", fx, fy);
+    }
+
+    // Lieutenants (Officer Peaked Service Caps & Command Aura)
+    for (var ltR = 0; ltR < 2; ltR++) {
+      var lt = lieutenants[ltR];
+      if (!lt || !lt.alive) continue;
+      var ltx = sx(lt.x), lty = sy(lt.y), auraR = LIEUTENANT_AURA_R * z;
+
+      ctx.save();
+      ctx.strokeStyle = lt.team === 0 ? "rgba(88, 255, 138, 0.32)" : "rgba(255, 71, 61, 0.30)";
+      ctx.lineWidth = 1.8; ctx.setLineDash([8, 6]);
+      ctx.beginPath(); ctx.arc(ltx, lty, auraR, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+
+      var ltRad = Math.max(5.5, 9.2 * z);
+      ctx.fillStyle = lt.team === 0 ? "#355e3b" : "#4a3b32"; // Officer service uniform color
+      ctx.beginPath(); ctx.arc(ltx, lty, ltRad, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#ffd700"; ctx.lineWidth = 2.2; ctx.stroke();
+
+      // Officer Peaked Cap Visor
+      ctx.fillStyle = "#111";
+      ctx.beginPath();
+      ctx.arc(ltx + Math.cos(lt.ang) * 4, lty + Math.sin(lt.ang) * 4, ltRad * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      var ltBw = Math.max(44, 64 * z);
+      var ltHpPct = clamp(lt.hp / lt.maxHp, 0, 1);
+      ctx.fillStyle = "rgba(0,0,0,0.85)"; ctx.fillRect(ltx - ltBw * 0.5, lty - ltRad - 12, ltBw, 5);
+      ctx.fillStyle = lt.team === 0 ? "#58ff8a" : "#ff473d";
+      ctx.fillRect(ltx - ltBw * 0.5, lty - ltRad - 12, ltBw * ltHpPct, 5);
+
+      ctx.fillStyle = "#ffd700"; ctx.font = "bold 9.5px ui-monospace, monospace";
+      var ltStatus = lt.skillBannerT > 0 ? (" [" + lt.lastSkillTxt + "]") : " [COMMANDING]";
+      ctx.fillText(lt.name + ltStatus, ltx, lty - ltRad - 18);
+    }
+
+    // Heavy Armor Tanks
+    for (var tkI = 0; tkI < tanks.length; tkI++) {
+      var tk = tanks[tkI], tkX = sx(tk.x), tkY = sy(tk.y);
+      if (tkX < -50 || tkX > sw + 50 || tkY < -50 || tkY > sh + 50) continue;
+      var hw = 17 * z, hh = 23 * z;
+      ctx.fillStyle = tk.alive ? (tk.team === 0 ? "#2e547a" : "#783b32") : "#1c1a17";
+      ctx.fillRect(tkX - hw, tkY - hh, hw * 2, hh * 2);
+      ctx.strokeStyle = "#111"; ctx.lineWidth = 2; ctx.strokeRect(tkX - hw, tkY - hh, hw * 2, hh * 2);
+      if (tk.alive) {
+        ctx.fillStyle = tk.team === 0 ? "#22405e" : "#562821";
+        ctx.beginPath(); ctx.arc(tkX, tkY, Math.max(5.5, 11 * z), 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "#1a1a1a"; ctx.lineWidth = Math.max(2.5, 4.8 * z);
+        ctx.beginPath(); ctx.moveTo(tkX, tkY); ctx.lineTo(tkX + Math.cos(tk.tAng) * 26 * z, tkY + Math.sin(tk.tAng) * 26 * z); ctx.stroke();
+
+        var hpPct = clamp(tk.hp / tk.maxHp, 0, 1), bw = 42 * z;
+        ctx.fillStyle = "rgba(0,0,0,0.85)"; ctx.fillRect(tkX - bw * 0.5, tkY - hh - 10, bw, 5);
+        ctx.fillStyle = tk.team === 1 ? "#ff473d" : "#58ff8a";
+        ctx.fillRect(tkX - bw * 0.5, tkY - hh - 10, bw * hpPct, 5);
+      }
+    }
+
+    // Ballistic Tracers & Artillery Warnings
+    for (var pI2 = 0; pI2 < MAX_PROJ; pI2++) {
+      var p = projectiles[pI2];
+      if (!p.active) continue;
+      var px = sx(p.x), py = sy(p.y);
+      if (px < 0 || px > sw || py < 0 || py > sh) continue;
+      ctx.strokeStyle = p.isShell ? "#ffae33" : (p.team === 0 ? "#66ffff" : "#ff4d4d");
+      ctx.lineWidth = p.isShell ? 3.8 : 2.0;
+      ctx.beginPath(); ctx.moveTo(sx(p.prevX), sy(p.prevY)); ctx.lineTo(px, py); ctx.stroke();
+    }
+
+    for (var aI2 = 0; aI2 < artilleryShells.length; aI2++) {
+      var shl2 = artilleryShells[aI2];
+      if (shl2.delay > 0) continue;
+      var ax = sx(shl2.tx), ay = sy(shl2.ty);
+      var outerR = Math.max(18, 68 * z);
+      ctx.fillStyle = "rgba(255, 45, 35, 0.16)"; ctx.beginPath(); ctx.arc(ax, ay, outerR, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "rgba(255, 71, 61, 0.85)"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(ax, ay, outerR * (shl2.flight / shl2.maxFlight), 0, Math.PI * 2); ctx.stroke();
+
+      if (shl2.isWarning) {
+        ctx.fillStyle = "#ff473d"; ctx.font = "bold 9px ui-monospace, monospace"; ctx.textAlign = "center";
+        ctx.fillText("MORTAR INCOMING!", ax, ay - outerR - 5);
+      }
+      ctx.fillStyle = "#ffcc33"; ctx.beginPath(); ctx.arc(ax, ay - shl2.flight * 240 * z, Math.max(3, 5 * z), 0, Math.PI * 2); ctx.fill();
+    }
+
+    for (var gI = 0; gI < grenades.length; gI++) {
+      var gr = grenades[gI];
+      var pRatio = gr.t / gr.dur;
+      var arcLift = Math.sin(pRatio * Math.PI) * 28 * z;
+      var gx = sx(gr.x), gy = sy(gr.y) - arcLift;
+      ctx.fillStyle = "#ffae33"; ctx.beginPath(); ctx.arc(gx, gy, Math.max(2.5, 4 * z), 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Detailed Infantry Sprites (NRA German M35 Helmets vs IJA Steel Helmets / Field Caps with Neck Flaps)
+    for (var sI = 0; sI < soldiers.length; sI++) {
+      var s = soldiers[sI], ssx = sx(s.x), ssy = sy(s.y);
+      if (ssx < -24 || ssx > sw + 24 || ssy < -24 || ssy > sh + 24) continue;
+
+      if (s.st === 2) {
+        ctx.fillStyle = "rgba(18, 16, 15, 0.55)"; ctx.fillRect(ssx - 2.5, ssy - 2.5, 5, 5); continue;
+      }
+      if (s.st === 1) {
+        ctx.fillStyle = "#ff3b30"; ctx.beginPath(); ctx.arc(ssx, ssy, Math.max(3, 4.5 * z), 0, Math.PI * 2); ctx.fill(); continue;
+      }
+
+      var rx = ssx - Math.cos(s.ang) * (s.recoil * z);
+      var ry = ssy - Math.sin(s.ang) * (s.recoil * z);
+
+      if (s.flash > 0) {
+        var mGrad = ctx.createRadialGradient(rx, ry, 2, rx, ry, Math.max(14, 34 * z));
+        mGrad.addColorStop(0, s.team === 0 ? "rgba(120, 230, 255, 0.42)" : "rgba(255, 90, 50, 0.48)");
+        mGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = mGrad; ctx.beginPath(); ctx.arc(rx, ry, Math.max(14, 34 * z), 0, Math.PI * 2); ctx.fill();
+      }
+
+      var gunLen = Math.max(5.5, (s.role === "HMG" ? 12 : 9) * z);
+      var gxEnd = rx + Math.cos(s.ang) * gunLen, gyEnd = ry + Math.sin(s.ang) * gunLen;
+      ctx.strokeStyle = "#141712"; ctx.lineWidth = Math.max(1.6, 2.3 * z);
+      ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(gxEnd, gyEnd); ctx.stroke();
+
+      if (s.flash > 0) {
+        ctx.fillStyle = "#fff599"; ctx.beginPath(); ctx.arc(gxEnd, gyEnd, Math.max(2.5, 4.5 * z), 0, Math.PI * 2); ctx.fill();
+      }
+
+      var rad = Math.max(3.6, 5.6 * z);
+      var uniformCol = s.team === 0 ? "#3b5336" : "#706850"; // NRA Gray-Green vs IJA Khaki Olive
+
+      ctx.fillStyle = uniformCol;
+      ctx.beginPath(); ctx.arc(rx, ry, rad, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = s.squad.hasLtAura ? "#58ff8a" : "#121712";
+      ctx.lineWidth = 1.2; ctx.stroke();
+
+      // HELMET / HEADGEAR RENDERING:
+      // NRA Allies: Distinct German-style M35 steel helmets (flared brim dome)
+      // IJA Enemies: Japanese Type 90 steel helmets OR cloth field caps with neck flaps
+      ctx.fillStyle = s.team === 0 ? "#2b3b28" : (s.hatStyle === "CAP" ? "#8c7e62" : "#595448");
+      ctx.beginPath();
+      if (s.team === 0) {
+        // NRA M35 Steel Helmet (Flared bell shape)
+        ctx.ellipse(rx, ry - 1, rad * 1.05, rad * 0.75, s.ang, 0, Math.PI * 2);
+      } else if (s.hatStyle === "CAP") {
+        // IJA Field Cap with Neck Flaps
+        ctx.ellipse(rx - Math.cos(s.ang)*2, ry - Math.sin(s.ang)*2, rad * 0.9, rad * 0.7, s.ang, 0, Math.PI * 2);
+      } else {
+        // IJA Type 90 Steel Helmet (Dome shape)
+        ctx.arc(rx, ry, rad * 0.82, 0, Math.PI * 2);
+      }
+      ctx.fill();
+      ctx.strokeStyle = "#111"; ctx.lineWidth = 0.8; ctx.stroke();
+    }
+
+    // Particles, Smoke & Fog
+    for (var swI2 = 0; swI2 < shockwaves.length; swI2++) {
+      var swv2 = shockwaves[swI2];
+      ctx.strokeStyle = swv2.color; ctx.globalAlpha = clamp(swv2.alpha, 0, 1);
+      ctx.lineWidth = Math.max(1.5, 3.5 * z);
+      ctx.beginPath(); ctx.arc(sx(swv2.x), sy(swv2.y), Math.max(2, swv2.r * z), 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.globalAlpha = 1.0;
+
+    for (var ptI2 = 0; ptI2 < particles.length; ptI2++) {
+      var pt2 = particles[ptI2];
+      ctx.fillStyle = pt2.color; ctx.globalAlpha = clamp(pt2.life / pt2.maxLife, 0, 1);
+      ctx.beginPath(); ctx.arc(sx(pt2.x), sy(pt2.y), Math.max(1.5, pt2.r * z), 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1.0;
+
+    for (var smI2 = 0; smI2 < smokes.length; smI2++) {
+      var sm2 = smokes[smI2];
+      ctx.fillStyle = sm2.isBlack ? "rgba(28, 26, 24, 0.62)" : "rgba(215, 225, 212, 0.56)";
+      ctx.beginPath(); ctx.arc(sx(sm2.x), sy(sm2.y), Math.max(8, sm2.r * z), 0, Math.PI * 2); ctx.fill();
+    }
+
+    for (var fgI2 = 0; fgI2 < fogClouds.length; fgI2++) {
+      var fg2 = fogClouds[fgI2], fx2 = sx(fg2.x), fy2 = sy(fg2.y), fr2 = fg2.r * z;
+      if (fx2 + fr2 < 0 || fx2 - fr2 > sw || fy2 + fr2 < 0 || fy2 - fr2 > sh) continue;
+      var fGrad = ctx.createRadialGradient(fx2, fy2, fr2 * 0.1, fx2, fy2, fr2);
+      fGrad.addColorStop(0, "rgba(185, 200, 180, " + fg2.alpha + ")");
+      fGrad.addColorStop(1, "rgba(185, 200, 180, 0)");
+      ctx.fillStyle = fGrad; ctx.beginPath(); ctx.arc(fx2, fy2, fr2, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // TRANSPARENT SQUAD NAMETAGS (No grey background blocks, rendered directly with crisp outlines/dropshadows)
+    ctx.font = "bold 10px ui-monospace, monospace"; ctx.textAlign = "center";
+    for (var lI = 0; lI < squads.length; lI++) {
+      var sq2 = squads[lI], lead2 = sq2.activeLeader;
+      if (!lead2) continue;
+      var lsx = sx(lead2.x), lsy = sy(lead2.y) - 18;
+      if (lsx < -40 || lsx > sw + 40 || lsy < -20 || lsy > sh + 20) continue;
+
+      var tagTxt = "#" + sq2.name + (sq2.hasLtAura ? "★" : "") + (sq2.isPanicked ? " [!]" : (lead2.onWall ? " [W]" : (lead2.inTrench ? " [T]" : " [" + sq2.order.charAt(0) + "]")));
+      
+      // Outline/Dropshadow for maximum readability without a background box
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
+      ctx.strokeText(tagTxt, lsx, lsy);
+
+      ctx.fillStyle = sq2.isPanicked ? "#ffeb3b" : getSquadColor(sq2);
+      ctx.fillText(tagTxt, lsx, lsy);
+    }
+
+    // Tactical Minimap Radar
+    var mx = 118 / W, my = 236 / H;
+    mCtx.fillStyle = "#0d130e"; mCtx.fillRect(0, 0, 118, 236);
+    // Moat on minimap
+    mCtx.fillStyle = "#16384a"; mCtx.fillRect(0, MOAT_Y1 * my, 118, (MOAT_Y2 - MOAT_Y1) * my);
+    // Yangtze River on minimap
+    mCtx.fillStyle = "#16384a"; mCtx.fillRect(0, RIVER_Y * my, 118, 236 - RIVER_Y * my);
+
+    mCtx.fillStyle = "rgba(74, 98, 62, 0.35)"; mCtx.fillRect(0, 0, 118, 1450 * my);
+    mCtx.fillStyle = "#7a5c48"; mCtx.fillRect(0, WALL_Y * my, 118, 4);
+
+    gates.forEach(function(gtM) {
+      mCtx.fillStyle = gtM.hp > 0 ? "#58ff8a" : "#ff473d";
+      mCtx.fillRect(gtM.x * mx, (gtM.y - 30) * my, Math.max(4, gtM.w * mx), 5);
+    });
+
+    flags.forEach(function(fl) {
+      mCtx.fillStyle = fl.own === 0 ? "#38d6ff" : "#ff473d";
+      mCtx.fillRect(fl.x * mx - 3, fl.y * my - 3, 6, 6);
+    });
+    boats.forEach(function(btM) {
+      mCtx.fillStyle = "#ffffff";
+      mCtx.fillRect(btM.x * mx - 2, btM.y * my - 2, 4, 4);
+    });
+    tanks.forEach(function(tk) {
+      if (tk.alive) { mCtx.fillStyle = "#ffae33"; mCtx.fillRect(tk.x * mx - 2.5, tk.y * my - 2.5, 5, 5); }
+    });
+    squads.forEach(function(sq) {
+      var l = sq.activeLeader;
+      if (l) {
+        mCtx.fillStyle = getSquadColor(sq);
+        mCtx.beginPath(); mCtx.arc(l.x * mx, l.y * my, 2.2, 0, Math.PI * 2); mCtx.fill();
+      }
+    });
+    lieutenants.forEach(function(ltM) {
+      if (ltM && ltM.alive) {
+        mCtx.fillStyle = ltM.team === 0 ? "#58ff8a" : "#ffffff";
+        mCtx.fillRect(ltM.x * mx - 3.5, ltM.y * my - 3.5, 7, 7);
+      }
+    });
+    mCtx.strokeStyle = "#58ff8a"; mCtx.lineWidth = 1.1;
+    mCtx.strokeRect((cam.x - sw * 0.5 / z) * mx, (cam.y - sh * 0.5 / z) * my, (sw / z) * mx, (sh / z) * my);
+  }
+
+  /****************************************************************************
+   * 5. INPUT GESTURES & COMMAND DECK BINDINGS
+   ****************************************************************************/
+  function selectSquad(id, center) {
+    selSq = id;
+    for (var i = 0; i < 8; i++) {
+      var btn = document.getElementById("sq" + i);
+      if (btn) btn.classList.toggle("active-sq", id === i);
+    }
+    document.getElementById("sqAll").classList.toggle("active-all", id === -1);
+    var ref = id === -1 ? squads[0] : squads[id];
+    if (ref) {
+      document.getElementById("ordAdv").classList.toggle("active-ord", ref.order === "ADVANCE");
+      document.getElementById("ordHold").classList.toggle("active-ord", ref.order === "HOLD");
+      document.getElementById("ordFlag").classList.toggle("active-ord", ref.order === "ASSAULT_FLAG");
+      document.getElementById("ordRet").classList.toggle("active-ord", ref.order === "FALLBACK");
+      if (center && ref.activeLeader) {
+        cam.x = ref.activeLeader.x; cam.y = ref.activeLeader.y; clampCam();
+      }
+    }
+  }
+
+  function bindBtn(id, fn) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener("pointerdown", function(e) { e.preventDefault(); e.stopPropagation(); fn(); });
+  }
+  for (var b = 0; b < 8; b++) (function(idx) { bindBtn("sq" + idx, function() { selectSquad(idx, true); }); })(b);
+  bindBtn("sqAll", function() { selectSquad(-1, false); });
+
+  bindBtn("bLtControl", function() {
+    ltControlPlayer = !ltControlPlayer;
+    var btn = document.getElementById("bLtControl");
+    btn.classList.toggle("active-lt", ltControlPlayer);
+    btn.innerHTML = (ltControlPlayer ? "LT AI: ON" : "LT AI: OFF") + '<span class="sub">SQUADS 1-8</span>';
+  });
+
+  bindBtn("bCopilot", function() {
+    copilotOn = !copilotOn;
+    var btn = document.getElementById("bCopilot");
+    btn.classList.toggle("active-copilot", copilotOn);
+    btn.innerHTML = (copilotOn ? "ALLY AI: ON" : "ALLY AI: OFF") + '<span class="sub">SQUADS 9-16</span>';
+  });
+
+  [["ordAdv","ADVANCE"],["ordHold","HOLD"],["ordFlag","ASSAULT_FLAG"],["ordRet","FALLBACK"]].forEach(function(pair) {
+    bindBtn(pair[0], function() {
+      if (selSq === -1) {
+        for (var i = 0; i < squads.length; i++) {
+          if (squads[i].team === 0 && !squads[i].isIndependent) setSquadOrder(squads[i], pair[1]);
+        }
+      } else if (squads[selSq]) {
+        setSquadOrder(squads[selSq], pair[1]);
+      }
+      selectSquad(selSq, false);
+    });
+  });
+
+  bindBtn("bSmoke", function() {
+    var list = selSq === -1 ? squads.filter(function(sq) { return sq.team === 0 && !sq.isIndependent; }) : [squads[selSq]];
+    list.forEach(function(sq) {
+      if (!sq) return;
+      var smoker = sq.members.find(function(m) { return m.st === 0 && m.hasSmoke; });
+      if (smoker) {
+        smoker.hasSmoke = false;
+        spawnSmoke(smoker.x + Math.cos(sq.ang) * 65, smoker.y + Math.sin(sq.ang) * 65);
+      }
+    });
+  });
+
+  bindBtn("bDeployAT", function() {
+    var list = selSq === -1 ? squads.filter(function(sq) { return sq.team === 0 && !sq.isIndependent; }) : [squads[selSq]];
+    list.forEach(function(sq) {
+      if (!sq) return;
+      var builder = sq.members.find(function(m) { return m.st === 0 && m.hasBuildKit; });
+      if (builder) {
+        builder.hasBuildKit = false;
+        var ax = builder.x + Math.cos(sq.ang) * 34;
+        var ay = builder.y + Math.sin(sq.ang) * 34;
+        atObstacles.push({ x: ax, y: ay, hp: 650, maxHp: 650, tier: 2, isAT: true });
+        spawnRicochet(ax, ay, true);
+      }
+    });
+  });
+
+  bindBtn("bWallAction", function() {
+    var list = selSq === -1 ? squads.filter(function(sq) { return sq.team === 0 && !sq.isIndependent; }) : [squads[selSq]];
+    list.forEach(function(sq) { triggerWallOrGateAction(sq); });
+  });
+
+  bindBtn("bArtillery", function() {
+    if (alliedArtilleryCd > 0) return;
+    var ref = selSq >= 0 && squads[selSq] ? squads[selSq] : squads[4];
+    var lead = ref ? ref.activeLeader : null;
+    var tx = lead ? lead.x + Math.cos(ref.ang) * 320 : 1800;
+    var ty = lead ? lead.y + Math.sin(ref.ang) * 320 : 2020;
+    callArtilleryBarrage(tx, ty, 6, 0, false);
+    alliedArtilleryCd = 35.0;
+  });
+
+  bindBtn("bWave", executeWaveCycle);
+  bindBtn("bReset", initBattle);
+  bindBtn("bModalReset", initBattle);
+  bindBtn("bZoomIn", function() { cam.z = clamp(cam.z * 1.22, cam.minZ, cam.maxZ); clampCam(); });
+  bindBtn("bZoomOut", function() { cam.z = clamp(cam.z * 0.82, cam.minZ, cam.maxZ); clampCam(); });
+  bindBtn("bCenter", function() { selectSquad(selSq >= 0 ? selSq : 4, true); });
+  bindBtn("bPortCam", function() { cam.x = 1800; cam.y = 6260; clampCam(); });
+
+  // Start Match Trigger from Intro Briefing Modal
+  function startMatch() {
+    if (gameStarted) return;
+    gameStarted = true;
+    document.getElementById("introModal").style.display = "none";
+    initBattle();
+  }
+  document.getElementById("bStartMatch").addEventListener("pointerdown", startMatch);
+  window.addEventListener("keydown", startMatch);
+
+  var ptrs = {}, px0 = 0, py0 = 0, cx0 = 0, cy0 = 0, maxDrag = 0, pinch0 = 0, downT = 0;
+  function getPtrs() { var a = []; for (var k in ptrs) if (Object.prototype.hasOwnProperty.call(ptrs, k)) a.push(ptrs[k]); return a; }
+
+  cv.addEventListener("pointerdown", function(e) {
+    e.preventDefault(); ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var p = getPtrs();
+    if (p.length === 1) { px0 = e.clientX; py0 = e.clientY; cx0 = cam.x; cy0 = cam.y; maxDrag = 0; downT = Date.now(); }
+    else if (p.length === 2) pinch0 = dist(p[0].x, p[0].y, p[1].x, p[1].y);
+  });
+
+  cv.addEventListener("pointermove", function(e) {
+    if (!ptrs[e.pointerId]) return;
+    ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var p = getPtrs();
+    if (p.length === 1) {
+      var dx = e.clientX - px0, dy = e.clientY - py0;
+      maxDrag = Math.max(maxDrag, Math.hypot(dx, dy));
+      if (maxDrag > 6) { cam.x = cx0 - dx / cam.z; cam.y = cy0 - dy / cam.z; clampCam(); }
+    } else if (p.length === 2) {
+      var cd = dist(p[0].x, p[0].y, p[1].x, p[1].y);
+      if (pinch0 > 10) { cam.z = clamp(cam.z * (cd / pinch0), cam.minZ, cam.maxZ); clampCam(); }
+      pinch0 = cd; maxDrag = 999;
+    }
+  });
+
+  function endPtr(e) {
+    delete ptrs[e.pointerId];
+    if (getPtrs().length === 0 && maxDrag < 12 && Date.now() - downT < 320) {
+      var wPt = toWorld(e.clientX, e.clientY);
+      for (var i = 0; i < 8; i++) {
+        var l = squads[i].activeLeader;
+        if (l && dist(wPt.x, wPt.y, l.x, l.y) < 38) { selectSquad(i, false); return; }
+      }
+      if (selSq === -1) {
+        var cmdIdx = 0;
+        for (var j = 0; j < squads.length; j++) {
+          if (squads[j].team === 0 && !squads[j].isIndependent) {
+            var angle = (cmdIdx / 16) * Math.PI * 2;
+            var radius = (cmdIdx >= 8) ? 185 : 95;
+            claimCover(squads[j], wPt.x + Math.cos(angle) * radius, wPt.y + Math.sin(angle) * radius);
+            cmdIdx++;
+          }
+        }
+      } else if (squads[selSq]) {
+        claimCover(squads[selSq], wPt.x, wPt.y);
+      }
+      ripples.push({ x: wPt.x, y: wPt.y, r: 8, a: 1.0 });
+    }
+  }
+  cv.addEventListener("pointerup", endPtr);
+  cv.addEventListener("pointercancel", endPtr);
+
+  cv.addEventListener("wheel", function(e) {
+    e.preventDefault(); cam.z = clamp(cam.z * (e.deltaY < 0 ? 1.12 : 0.89), cam.minZ, cam.maxZ); clampCam();
+  }, { passive: false });
+
+  mCv.addEventListener("pointerdown", function(e) {
+    var r = mCv.getBoundingClientRect();
+    cam.x = ((e.clientX - r.left) / r.width) * W; cam.y = ((e.clientY - r.top) / r.height) * H; clampCam();
+  });
+
+  var lastT = Date.now(), uiTick = 0;
+  function mainLoop() {
+    var now = Date.now(), dt = clamp((now - lastT) / 1000, 0.001, 0.05);
+    lastT = now;
+
+    if (gameStarted) updateSim(dt);
+    renderScene(now * 0.001);
+
+    uiTick += dt;
+    if (uiTick > 0.25) {
+      uiTick = 0;
+      var mins = Math.floor(missionTimer / 60);
+      var secs = Math.floor(missionTimer % 60);
+      document.getElementById("uiTimer").textContent = "HOLD: " + mins + ":" + (secs < 10 ? "0" : "") + secs;
+      document.getElementById("uiCivs").textContent = "EVACUATED: " + civsSaved + " | CIV KIA: " + civsKilled + "/" + MAX_CIV_KIA_LIMIT;
+
+      var waveCycleDesc = waveStepIndex === 0 ? "R1/3" : (waveStepIndex === 1 ? "R2/3" : (waveStepIndex === 2 ? "R3/3" : "B1/1"));
+      document.getElementById("uiWave").textContent = "WAVE: " + waveCycleDesc + " (" + Math.ceil(waveTimer) + "s)";
+
+      var wBarPct = Math.ceil((bridgeBarriers[0].hp / bridgeBarriers[0].maxHp) * 100);
+      var eBarPct = Math.ceil((bridgeBarriers[1].hp / bridgeBarriers[1].maxHp) * 100);
+      var wGatePct = Math.ceil((gates[0].hp / gates[0].maxHp) * 100);
+      var mGatePct = Math.ceil((gates[1].hp / gates[1].maxHp) * 100);
+      var eGatePct = Math.ceil((gates[2].hp / gates[2].maxHp) * 100);
+      document.getElementById("uiBarriers").textContent =
+        "BRIDGES: W " + wBarPct + "% | E " + eBarPct + "% &nbsp;//&nbsp; GATES: W " + wGatePct + "% | MAIN " + mGatePct + "% | E " + eGatePct + "%";
+
+      var anyCritical = bridgeBarriers.some(function(b) { return b.hp < b.maxHp * 0.25; }) || gates.some(function(g) { return g.hp < g.maxHp * 0.25; });
+      var vigEl = document.getElementById("vignetteOverlay");
+      var banEl = document.getElementById("breachBanner");
+      if (anyCritical || breachAlarmTimer > 0) {
+        vigEl.classList.add("breach-alarm");
+        banEl.style.display = "block";
+      } else {
+        vigEl.classList.remove("breach-alarm");
+        banEl.style.display = "none";
+      }
+
+      for (var i = 0; i < 8; i++) {
+        var sq = squads[i];
+        if (sq) {
+          var c = sq.members.filter(function(m) { return m.st === 0; }).length;
+          var stLabel = sq.isPanicked ? "PANIC!" : Math.round(sq.ammo) + "% AMMO";
+          var mEl = document.getElementById("ms" + i);
+          if (mEl) mEl.textContent = c + "/10 | " + stLabel;
+        }
+      }
+
+      var artEl = document.getElementById("artSub");
+      if (artEl) artEl.textContent = alliedArtilleryCd > 0 ? Math.ceil(alliedArtilleryCd) + "s CD" : "READY";
+    }
+    requestAnimationFrame(mainLoop);
+  }
+
+  requestAnimationFrame(mainLoop);
+})();
+</script>
+</body>
+</html>
